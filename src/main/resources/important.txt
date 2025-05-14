@@ -1,0 +1,1 @@
+postgresql://neondb_owner:npg_MpZLvay32Bri@ep-misty-butterfly-a45w36qq-pooler.us-east-1.aws.neon.tech/Arebbus?sslmode=require
