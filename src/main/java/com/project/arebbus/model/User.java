@@ -4,6 +4,7 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
+import java.math.BigDecimal;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -19,24 +20,36 @@ import org.springframework.security.core.userdetails.UserDetails;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "AREBBUS_USER")
+@Table(name = "Users")
 public class User implements UserDetails {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(nullable = false)
     private Long id;
 
-    @Column(nullable = false)
-    private String fullName;
+    @Column(name = "name", nullable = false)
+    private String name;
 
-    @Column(unique = true, length = 100, nullable = false)
+    @Column(unique = true, length = 255, nullable = false)
     private String email;
 
     @Column(nullable = false)
     private String password;
-    private Double reputation;
+
+    @Column(nullable = false)
     private String image;
+
+    @Column(nullable = false)
+    private Integer reputation;
+
+    @Column(nullable = false)
     private Boolean valid;
+
+    @Column(precision = 8, scale = 2)
+    private BigDecimal latitude;
+
+    @Column(precision = 8, scale = 2)
+    private BigDecimal longitude;
 
     @CreationTimestamp
     @Column(updatable = false, name = "created_at")
@@ -46,27 +59,41 @@ public class User implements UserDetails {
     @Column(name = "updated_at")
     private Date updatedAt;
 
-
+    // Relationships
     @OneToMany(mappedBy = "author")
     private Set<Bus> authoredBuses;
 
-    @ManyToMany
-    @JoinTable(
-            name = "user_installed_buses",
-            joinColumns = @JoinColumn(name = "user_id"),
-            inverseJoinColumns = @JoinColumn(name = "bus_id")
-    )
-    private Set<Bus> installedBuses;
+    @OneToMany(mappedBy = "author")
+    private Set<Route> authoredRoutes;
 
+    @OneToMany(mappedBy = "author")
+    private Set<Stop> authoredStops;
 
-    @ManyToMany
-    @JoinTable(
-            name = "subscriptions",
-            joinColumns = @JoinColumn(name = "user_id"),
-            inverseJoinColumns = @JoinColumn(name = "route_id")
-    )
-    private Set<Route> routeSubscriptions;
+//    @OneToMany(mappedBy = "author")
+//    private Set<RouteStop> authoredRouteStops;
 
+    @OneToMany(mappedBy = "author")
+    private Set<Post> authoredPosts;
+
+    @OneToMany(mappedBy = "author")
+    private Set<Comment> authoredComments;
+
+    @OneToMany(mappedBy = "user")
+    private Set<Install> installations;
+
+    @OneToMany(mappedBy = "user")
+    private Set<RouteSubscription> routeSubscriptions;
+
+    @OneToMany(mappedBy = "user")
+    private Set<StopSubscription> stopSubscriptions;
+
+    @OneToMany(mappedBy = "user")
+    private Set<Location> locations;
+
+    @OneToMany(mappedBy = "user")
+    private Set<WaitingFor> waitingFor;
+
+    // Spring Security UserDetails implementation
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of();
@@ -94,6 +121,6 @@ public class User implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return true;
+        return valid != null ? valid : true;
     }
 }

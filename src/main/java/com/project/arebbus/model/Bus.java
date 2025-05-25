@@ -8,29 +8,48 @@ import lombok.NoArgsConstructor;
 import java.util.Set;
 
 @Data
-@Entity
-@AllArgsConstructor
-@NoArgsConstructor
 @Builder
-@Table(name = "BUS")
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "Bus")
 public class Bus {
     @Id
-    @GeneratedValue
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne
-    @JoinColumn(name = "author_id", nullable = false) //foreign key
+    @JoinColumn(name = "author_id", nullable = false)
     private User author;
 
-    private Integer capacity;
-    private Long routeId;
-    private Double fairs;
-    private Long basedOn;
+    @ManyToOne
+    @JoinColumn(name = "route_id", nullable = false)
+    private Route route;
+
+    @Column(nullable = false)
+    private Short capacity;
+
+    @Column(name = "num_install", nullable = false)
+    private Integer numInstall;
+
+    @Column(name = "num_upvote", nullable = false)
+    private Long numUpvote;
+
     private String status;
-    private Integer installs;
-    private Integer upvotes;
 
-    @ManyToMany(mappedBy = "installedBuses")
-    private Set<User> installedByUsers;
+    @ManyToOne
+    @JoinColumn(name = "based_on")
+    private Bus basedOn;
 
+    @OneToMany(mappedBy = "basedOn")
+    private Set<Bus> derivedBuses;
+
+    @OneToMany(mappedBy = "bus")
+    private Set<Install> installs;
+
+    @OneToMany(mappedBy = "bus")
+    private Set<Location> locations;
+
+    @OneToMany(mappedBy = "bus")
+    private Set<WaitingFor> waitingUsers;
 }

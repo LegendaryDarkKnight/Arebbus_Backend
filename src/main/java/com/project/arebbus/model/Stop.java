@@ -5,21 +5,36 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
+import java.math.BigDecimal;
 import java.util.Set;
 
 @Data
-@Entity
 @Builder
-@AllArgsConstructor
 @NoArgsConstructor
-@Table( name = "STOP")
+@AllArgsConstructor
+@Entity
+@Table(name = "Stop")
 public class Stop {
     @Id
-    @GeneratedValue
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(nullable = false)
     private String name;
 
-    @ManyToMany(mappedBy = "stops")
-    private Set<Route> routes;
+    @Column(nullable = false, precision = 8, scale = 2)
+    private BigDecimal latitude;
+
+    @Column(nullable = false, precision = 8, scale = 2)
+    private BigDecimal longitude;
+
+    @ManyToOne
+    @JoinColumn(name = "author_id", nullable = false)
+    private User author;
+
+    @OneToMany(mappedBy = "stop")
+    private Set<RouteStop> routeStops;
+
+    @OneToMany(mappedBy = "stop")
+    private Set<StopSubscription> subscriptions;
 }

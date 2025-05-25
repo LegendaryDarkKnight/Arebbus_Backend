@@ -36,13 +36,13 @@ public class AuthService {
         if(userRepository.existsByEmail(input.getEmail())){
             return new AuthResponse("User already exists",false);
         }
-        String fake = "";
+        String fake = "https://picsum.photos/seed/example/300/200";
 
         User user = User.builder()
                         .email(input.getEmail())
-                        .fullName(input.getFullName())
+                        .name(input.getName())
                         .password(passwordEncoder.encode(input.getPassword()))
-                        .reputation(0.0)
+                        .reputation(0)
                         .image(fake)
                         .valid(true)
                         .build();

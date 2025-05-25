@@ -6,3 +6,5 @@ README.md
 *.idea/
 *.log
 .env
+src/main/resources/DDL_Arebbus.sql
+src/main/resources/important.txt

@@ -5,20 +5,22 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import java.util.List;
+import java.util.Set;
 
 @Data
-@Entity
 @Builder
-@AllArgsConstructor
 @NoArgsConstructor
-@Table(name = "TAG")
+@AllArgsConstructor
+@Entity
+@Table(name = "Tag")
 public class Tag {
     @Id
-    @GeneratedValue
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(nullable = false)
     private String name;
 
-    @ManyToMany(mappedBy = "postTags")
-    private List<Post> relatedPost;
+    @OneToMany(mappedBy = "tag")
+    private Set<PostTag> postTags;
 }

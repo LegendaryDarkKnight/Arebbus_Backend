@@ -5,28 +5,32 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-import java.util.List;
+import java.util.Set;
 
 @Data
-@Entity
 @Builder
-@AllArgsConstructor
 @NoArgsConstructor
-@Table(name = "POST")
+@AllArgsConstructor
+@Entity
+@Table(name = "Post")
 public class Post {
     @Id
-    @GeneratedValue
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    private Long userId;
-    private String content;
-    private String upvotes;
 
-    @ManyToMany
-    @JoinTable(
-            name = "post_tags",
-            joinColumns = @JoinColumn(name = "post_id"),
-            inverseJoinColumns = @JoinColumn(name = "tag_id")
-    )
-    private List<Tag> postTags;
+    @ManyToOne
+    @JoinColumn(name = "author_id", nullable = false)
+    private User author;
+
+    @Column(nullable = false)
+    private String content;
+
+    @Column(name = "num_upvote", nullable = false)
+    private Long numUpvote;
+
+    @OneToMany(mappedBy = "post")
+    private Set<PostTag> postTags;
+
+    @OneToMany(mappedBy = "post")
+    private Set<Comment> comments;
 }
