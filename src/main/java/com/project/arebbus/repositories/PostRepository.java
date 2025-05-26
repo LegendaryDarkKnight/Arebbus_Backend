@@ -4,9 +4,12 @@ package com.project.arebbus.repositories;
 import com.project.arebbus.model.Post;
 import com.project.arebbus.model.User;
 import com.project.arebbus.model.Tag;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+
 import java.util.List;
 
 public interface PostRepository extends JpaRepository<Post, Long> {
@@ -29,4 +32,6 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     // Find most popular posts
     @Query(nativeQuery = true, value = "SELECT p FROM Post p ORDER BY p.numUpvote DESC")
     List<Post> findMostPopularPosts();
+
+    Page<Post> findAll(Pageable pageable);
 }

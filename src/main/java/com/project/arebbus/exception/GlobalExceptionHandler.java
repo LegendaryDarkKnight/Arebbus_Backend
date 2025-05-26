@@ -1,0 +1,36 @@
+package com.project.arebbus.exception;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+import java.time.Instant;
+import java.util.Map;
+
+@RestControllerAdvice
+public class GlobalExceptionHandler {
+
+    @ExceptionHandler(PostNotFoundException.class)
+    public ResponseEntity<?> handlePostNotFoundException(PostNotFoundException e) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse(e.getMessage()));
+    }
+
+    @ExceptionHandler(UnauthorizedPostAccessException.class)
+    public ResponseEntity<?> handleUnauthorizedPostAccessException(UnauthorizedPostAccessException e) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorResponse(e.getMessage()));
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<?> handleException(Exception e) {
+        System.out.println(e);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse(e.getMessage()));
+    }
+
+    private Map<String, Object> errorResponse(String message) {
+        return Map.of(
+                "timestamp", Instant.now().toString(),
+                "error", message == null ? "An error occurred" : message
+        );
+    }
+}
