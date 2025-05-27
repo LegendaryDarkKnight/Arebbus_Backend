@@ -65,6 +65,7 @@ public class UserPostService {
                 .content(savedPost.getContent())
                 .authorName(user.getName())
                 .tags(savedTagNames)
+                .createdAt(savedPost.getCreatedAt())
                 .build();
     }
 
@@ -87,7 +88,7 @@ public class UserPostService {
     }
 
 
-    public PagedPostResponse getAllPosts(int page, int size) {
+    public PagedPostResponse getAllPostsPage(int page, int size) {
         Page<Post> posts = postRepository.findAll(PageRequest.of(page, size));
 
         System.out.println("Total posts found: " + posts.getTotalElements());
@@ -99,6 +100,7 @@ public class UserPostService {
                         .authorName(post.getAuthor().getName())
                         .content(post.getContent())
                         .numUpvote(post.getNumUpvote())
+                        .createdAt(post.getCreatedAt())
 //                        .tags(post.getPostTags().stream()
 //                                .map(PostTag::getTag)
 //                                .map(Tag::getName)

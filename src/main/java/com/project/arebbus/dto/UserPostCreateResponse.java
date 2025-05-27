@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 
+import java.util.Date;
 import java.util.List;
 
 @Data
@@ -14,4 +15,5 @@ public class UserPostCreateResponse {
     private String content;
     private String authorName;
     private List<String> tags;
+    private Date createdAt;
 }

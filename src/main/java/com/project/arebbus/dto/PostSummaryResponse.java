@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 
+import java.util.Date;
 import java.util.List;
 
 @Data
@@ -15,4 +16,5 @@ public class PostSummaryResponse {
     private String content;
     private Long numUpvote;
     private List<String> tags;
+    private Date createdAt;
 }
