@@ -101,10 +101,10 @@ public class UserPostService {
                         .content(post.getContent())
                         .numUpvote(post.getNumUpvote())
                         .createdAt(post.getCreatedAt())
-//                        .tags(post.getPostTags().stream()
-//                                .map(PostTag::getTag)
-//                                .map(Tag::getName)
-//                                .toList())
+                        .tags(post.getPostTags().stream()
+                                .map(PostTag::getTag)
+                                .map(Tag::getName)
+                                .toList())
                         .build()
         ).toList();
 
@@ -117,6 +117,24 @@ public class UserPostService {
                 .totalElements(posts.getTotalElements())
                 .build();
     }
+
+    public PostSummaryResponse getPostById(Long postId) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new PostNotFoundException(postId));
+
+        return PostSummaryResponse.builder()
+                .postId(post.getId())
+                .authorName(post.getAuthor().getName())
+                .content(post.getContent())
+                .numUpvote(post.getNumUpvote())
+                .createdAt(post.getCreatedAt())
+                .tags(post.getPostTags().stream()
+                        .map(PostTag::getTag)
+                        .map(Tag::getName)
+                        .toList())
+                .build();
+    }
+
 
 }
 

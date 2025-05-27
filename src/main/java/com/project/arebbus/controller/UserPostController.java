@@ -33,11 +33,18 @@ public class UserPostController {
         return ResponseEntity.ok(userPostService.deletePost(user, userPostDeleteRequest.getPostId()));
     }
 
-    @GetMapping("/page")
+    @GetMapping("/all")
     public ResponseEntity<PagedPostResponse> getAllPosts(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             Authentication authentication) {
         return ResponseEntity.ok(userPostService.getAllPostsPage(page, size));
     }
+
+
+    @GetMapping
+    public ResponseEntity<PostSummaryResponse> getPostById(@RequestParam Long postId, Authentication authentication) {
+        return ResponseEntity.ok(userPostService.getPostById(postId));
+    }
+
 }

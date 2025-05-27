@@ -2,10 +2,7 @@
 package com.project.arebbus.model;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 @Data
 @Builder
@@ -14,6 +11,7 @@ import lombok.NoArgsConstructor;
 @Entity
 @Table(name = "PostTag")
 @IdClass(PostTagId.class)
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class PostTag {
     @Id
     @Column(name = "post_id")
