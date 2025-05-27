@@ -3,6 +3,7 @@ package com.project.arebbus.service;
 import com.project.arebbus.dto.AuthResponse;
 import com.project.arebbus.dto.UserLoginDTO;
 import com.project.arebbus.dto.UserRegistrationDTO;
+import com.project.arebbus.exception.UserAlreadyExists;
 import com.project.arebbus.model.User;
 import com.project.arebbus.repositories.UserRepository;
 import com.project.arebbus.utils.CookieHelper;
@@ -34,7 +35,7 @@ public class AuthService {
         * Assuming the fields in request body is non-empty
         * */
         if(userRepository.existsByEmail(input.getEmail())){
-            return new AuthResponse("User already exists",false);
+            throw new UserAlreadyExists(input.getEmail());
         }
         String fake = "https://picsum.photos/seed/example/300/200";
 
@@ -46,15 +47,10 @@ public class AuthService {
                         .image(fake)
                         .valid(true)
                         .build();
-        try {
-            userRepository.save(user);
-            var jwtToken = jwtService.generateToken(user);
-            CookieHelper.addCookie(response,"arebbus",jwtToken);
-            return new AuthResponse("User Registered Successfully", true);
-        } catch (Exception e) {
-            System.out.println(e);
-            return new AuthResponse("An error occurred",false);
-        }
+        userRepository.save(user);
+        var jwtToken = jwtService.generateToken(user);
+        CookieHelper.addCookie(response,"arebbus",jwtToken);
+        return new AuthResponse(user.getId(), "User Registered Successfully", true);
     }
 
     public AuthResponse authenticate(UserLoginDTO input,
@@ -62,7 +58,7 @@ public class AuthService {
         var user = userRepository.findByEmail(input.getEmail())
                 .orElse(null);
         if(user == null)
-            return new AuthResponse("User Not Found", false);
+            return new AuthResponse(user.getId(), "User Not Found", false);
 
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
@@ -72,6 +68,6 @@ public class AuthService {
         );
         String jwtToken = jwtService.generateToken(user);
         CookieHelper.addCookie(response, "arebbus", jwtToken);
-        return new AuthResponse("User Successfully Logged in", true);
+        return new AuthResponse(user.getId(), "User Successfully Logged in", true);
     }
 }

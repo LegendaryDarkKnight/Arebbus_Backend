@@ -21,6 +21,11 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorResponse(e.getMessage()));
     }
 
+    @ExceptionHandler(UserAlreadyExists.class)
+    public ResponseEntity<?> handleUserAlreadyExists(UserAlreadyExists e) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse(e.getMessage()));
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<?> handleException(Exception e) {
         e.printStackTrace(System.err);
