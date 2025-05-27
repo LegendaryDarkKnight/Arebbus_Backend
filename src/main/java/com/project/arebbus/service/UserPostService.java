@@ -1,15 +1,13 @@
 package com.project.arebbus.service;
 
-import com.project.arebbus.dto.PagedPostResponse;
-import com.project.arebbus.dto.PostSummaryResponse;
-import com.project.arebbus.dto.UserPostCreateResponse;
-import com.project.arebbus.dto.UserPostDeleteResponse;
+import com.project.arebbus.dto.*;
 import com.project.arebbus.exception.PostNotFoundException;
 import com.project.arebbus.exception.UnauthorizedPostAccessException;
 import com.project.arebbus.model.Post;
 import com.project.arebbus.model.PostTag;
 import com.project.arebbus.model.Tag;
 import com.project.arebbus.model.User;
+import com.project.arebbus.repositories.CommentRepository;
 import com.project.arebbus.repositories.PostRepository;
 import com.project.arebbus.repositories.PostTagRepository;
 import com.project.arebbus.repositories.TagRepository;
@@ -28,6 +26,7 @@ public class UserPostService {
     private final PostRepository postRepository;
     private final TagRepository tagRepository;
     private final PostTagRepository postTagRepository;
+    private final CommentRepository commentRepository;
 
 
     public UserPostCreateResponse createPost(User user, String content, List<String> tagNames) {
@@ -118,11 +117,11 @@ public class UserPostService {
                 .build();
     }
 
-    public PostSummaryResponse getPostById(Long postId) {
+    public PostResponse getPostById(Long postId) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new PostNotFoundException(postId));
 
-        return PostSummaryResponse.builder()
+        return PostResponse.builder()
                 .postId(post.getId())
                 .authorName(post.getAuthor().getName())
                 .content(post.getContent())
@@ -132,6 +131,15 @@ public class UserPostService {
                         .map(PostTag::getTag)
                         .map(Tag::getName)
                         .toList())
+                .comments(commentRepository.findByPost(post).stream().map(
+                        comment -> CommentResponse.builder()
+                                .id(comment.getId())
+                                .content(comment.getContent())
+                                .authorName(comment.getAuthor().getName())
+                                .postId(postId)
+                                .createdAt(comment.getCreatedAt())
+                                .build()
+                ).toList())
                 .build();
     }
 

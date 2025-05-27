@@ -43,7 +43,7 @@ public class UserPostController {
 
 
     @GetMapping
-    public ResponseEntity<PostSummaryResponse> getPostById(@RequestParam Long postId, Authentication authentication) {
+    public ResponseEntity<PostResponse> getPostById(@RequestParam Long postId, Authentication authentication) {
         return ResponseEntity.ok(userPostService.getPostById(postId));
     }
 
