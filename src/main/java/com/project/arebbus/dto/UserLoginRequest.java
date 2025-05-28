@@ -3,7 +3,7 @@ package com.project.arebbus.dto;
 import lombok.Data;
 
 @Data
-public class UserLoginDTO {
+public class UserLoginRequest {
     private String email;
     private String password;
 }

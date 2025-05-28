@@ -22,15 +22,15 @@ public class UserPostController {
     }
 
     @PostMapping("/create")
-    public ResponseEntity<UserPostCreateResponse> createPost(@RequestBody UserPostCreateRequest userPostCreateRequest, Authentication authentication) {
+    public ResponseEntity<UserPostCreateResponse> createPost(@RequestBody UserPostCreateRequest request, Authentication authentication) {
         User user = (User) authentication.getPrincipal();
-        return ResponseEntity.ok(userPostService.createPost(user, userPostCreateRequest.getContent(), userPostCreateRequest.getTags()));
+        return ResponseEntity.ok(userPostService.createPost(user, request));
     }
 
     @DeleteMapping("/delete")
-    public ResponseEntity<UserPostDeleteResponse> deletePost(@RequestBody UserPostDeleteRequest userPostDeleteRequest, Authentication authentication) {
+    public ResponseEntity<UserPostDeleteResponse> deletePost(@RequestBody UserPostDeleteRequest request, Authentication authentication) {
         User user = (User) authentication.getPrincipal();
-        return ResponseEntity.ok(userPostService.deletePost(user, userPostDeleteRequest.getPostId()));
+        return ResponseEntity.ok(userPostService.deletePost(user, request));
     }
 
     @GetMapping("/all")

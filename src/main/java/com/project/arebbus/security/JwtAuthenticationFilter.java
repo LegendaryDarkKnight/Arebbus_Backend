@@ -7,9 +7,10 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -20,7 +21,6 @@ import org.springframework.web.servlet.HandlerExceptionResolver;
 
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.Objects;
 
 @Component
 @RequiredArgsConstructor
@@ -28,6 +28,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final HandlerExceptionResolver handlerExceptionResolver;
     private final JwtService jwtService;
     private final UserDetailsService userDetailsService;
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
 
     @Override
     protected void doFilterInternal(
@@ -37,7 +39,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     ) throws ServletException, IOException {
             final String jwt;
             final String userEmail;
-            final Boolean valid;
             Cookie[] cookies = request.getCookies();
             if (cookies != null) {
                 Cookie jwtCookie = Arrays.stream(cookies)
@@ -48,10 +49,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 if (jwtCookie != null) {
                     jwt = jwtCookie.getValue();
                     userEmail = jwtService.extractUsername(jwt);
-                    System.out.println(Objects.requireNonNullElse(userEmail, "Id is null"));
+                    if (userEmail == null) {
+                        LOGGER.error("Id is null");
+                    } else {
+                        LOGGER.debug(userEmail);
+                    }
+
                     if (userEmail != null && !userEmail.isEmpty() && SecurityContextHolder.getContext().getAuthentication() == null) {
                         UserDetails userDetails = this.userDetailsService.loadUserByUsername(userEmail);
-                        System.out.println("authenticated: "+userEmail);
+                        LOGGER.debug("Authenticated: {}", userEmail);
                         if (jwtService.isTokenValid(jwt, userDetails)) {
                             UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                                     userDetails,
