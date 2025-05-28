@@ -58,7 +58,7 @@ public class AuthService {
         var user = userRepository.findByEmail(input.getEmail())
                 .orElse(null);
         if(user == null)
-            return new AuthResponse(user.getId(), "User Not Found", false);
+            return new AuthResponse(0L, "User Not Found", false);
 
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
