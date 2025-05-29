@@ -50,7 +50,7 @@ public class AuthService {
         String jwtToken = jwtService.generateToken(user);
 //        CookieHelper.addCookie(response,"arebbus", jwtToken);
 
-        return new AuthResponse(user.getId(), "User Registered Successfully", true, jwtToken);
+        return new AuthResponse(user.getId(), "User Registered Successfully", true, jwtToken, user.getName(), user.getImage());
     }
 
     public AuthResponse authenticate(UserLoginRequest input) {
@@ -68,6 +68,6 @@ public class AuthService {
         logger.info("Authenticated");
         String jwtToken = jwtService.generateToken(user);
 //        CookieHelper.addCookie(response, "arebbus", jwtToken);
-        return new AuthResponse(user.getId(), "User Successfully Logged in", true, jwtToken);
+        return new AuthResponse(user.getId(), "User Successfully Logged in", true, jwtToken, user.getName(), user.getImage());
     }
 }

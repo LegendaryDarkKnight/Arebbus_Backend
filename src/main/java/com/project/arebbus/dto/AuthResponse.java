@@ -10,4 +10,6 @@ public class AuthResponse {
     private String message;
     private boolean success;
     private String token;
+    private String username;
+    private String imageUrl;
 }
