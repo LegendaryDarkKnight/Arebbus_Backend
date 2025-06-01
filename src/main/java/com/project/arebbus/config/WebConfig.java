@@ -17,11 +17,11 @@ public class WebConfig implements WebMvcConfigurer {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/**")
-                        .allowedOrigins(frontendUrl,"https://arebbus-v1.web.app/**")
+                        .allowedOrigins(frontendUrl)
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                         .allowCredentials(true)
                         .allowedHeaders("*")
-                        .exposedHeaders("Set-Cookie");
+                        .exposedHeaders("Set-Cookie","Authorization");
             }
         };
     }

@@ -33,20 +33,20 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> register(@RequestBody UserRegistrationRequest request, HttpServletResponse response1) {
         AuthResponse response = authService.register(request);
-        if (response.isSuccess()) {
-            CookieHelper.addCookie(response1, "arebbus", response.getToken());
-            response.setToken(null);
-        }
+//        if (response.isSuccess()) {
+//            CookieHelper.addCookie(response1, "arebbus", response.getToken());
+//            response.setToken(null);
+//        }
         return ResponseEntity.ok(response);
     }
 
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@RequestBody UserLoginRequest request, HttpServletResponse response1) {
         AuthResponse response = authService.authenticate(request);
-        if (response.isSuccess()) {
-            CookieHelper.addCookie(response1, "arebbus", response.getToken());
-            response.setToken(null);
-        }
+//        if (response.isSuccess()) {
+//            CookieHelper.addCookie(response1, "arebbus", response.getToken());
+//            response.setToken(null);
+//        }
         return ResponseEntity.ok(response);
     }
 }
