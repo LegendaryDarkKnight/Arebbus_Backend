@@ -26,7 +26,7 @@ jobs:
       - name: Run tests
         run: mvn test
 
-      - name: Upload JAR
+      - name: Upload JAR as artifact
         uses: actions/upload-artifact@v4
         with:
           name: app-jar
@@ -40,15 +40,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Download JAR
+      - name: Download JAR from previous job
         uses: actions/download-artifact@v4
         with:
           name: app-jar
+          path: downloaded-jar
 
-      - name: Rename JAR to app.jar in target folder
+      - name: Rename JAR to target/app.jar
         run: |
           mkdir -p target
-          cp app-jar/*.jar target/app.jar
+          cp downloaded-jar/*.jar target/app.jar
 
       - name: Log in to DockerHub
         uses: docker/login-action@v3
