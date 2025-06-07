@@ -14,7 +14,7 @@ public class testController {
     @GetMapping("")
     @ResponseStatus(HttpStatus.OK)
     public String nextGameState() {
-        return "Hello World";
+        return "Hello World Actions";
     }
 
     @GetMapping("/whoamii")
