@@ -38,13 +38,15 @@ public class UserPostController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             Authentication authentication) {
-        return ResponseEntity.ok(userPostService.getAllPostsPage(page, size));
+        User user = (User) authentication.getPrincipal();
+        return ResponseEntity.ok(userPostService.getAllPostsPage(user, page, size));
     }
 
 
     @GetMapping
     public ResponseEntity<PostResponse> getPostById(@RequestParam Long postId, Authentication authentication) {
-        return ResponseEntity.ok(userPostService.getPostById(postId));
+        User user = (User) authentication.getPrincipal();
+        return ResponseEntity.ok(userPostService.getPostById(user, postId));
     }
 
 }

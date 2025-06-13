@@ -18,4 +18,5 @@ public class PostResponse {
     private List<String> tags;
     private Date createdAt;
     private List<CommentResponse> comments;
+    private boolean upvoted; // Indicates if the current user has upvoted this post
 }

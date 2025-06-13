@@ -7,10 +7,7 @@ import com.project.arebbus.model.Post;
 import com.project.arebbus.model.PostTag;
 import com.project.arebbus.model.Tag;
 import com.project.arebbus.model.User;
-import com.project.arebbus.repositories.CommentRepository;
-import com.project.arebbus.repositories.PostRepository;
-import com.project.arebbus.repositories.PostTagRepository;
-import com.project.arebbus.repositories.TagRepository;
+import com.project.arebbus.repositories.*;
 import lombok.RequiredArgsConstructor;
 import org.apache.logging.log4j.simple.SimpleLogger;
 import org.slf4j.Logger;
@@ -32,6 +29,7 @@ public class UserPostService {
     private final TagRepository tagRepository;
     private final PostTagRepository postTagRepository;
     private final CommentRepository commentRepository;
+    private final UpvoteRepository upvoteRepository;
 
     private static final Logger LOGGER = LoggerFactory.getLogger(UserPostService.class);
 
@@ -98,7 +96,7 @@ public class UserPostService {
     }
 
 
-    public PagedPostResponse getAllPostsPage(int page, int size) {
+    public PagedPostResponse getAllPostsPage(User user, int page, int size) {
         Page<Post> posts = postRepository.findAll(PageRequest.of(page, size));
 
         LOGGER.debug("Total posts found: {}", posts.getTotalElements());
@@ -115,6 +113,7 @@ public class UserPostService {
                                 .map(PostTag::getTag)
                                 .map(Tag::getName)
                                 .toList())
+                        .upvoted(upvoteRepository.existsByUserIdAndPostId(user.getId(), post.getId()))
                         .build()
         ).toList();
 
@@ -128,7 +127,7 @@ public class UserPostService {
                 .build();
     }
 
-    public PostResponse getPostById(Long postId) {
+    public PostResponse getPostById(User user, Long postId) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new PostNotFoundException(postId));
 
@@ -151,6 +150,7 @@ public class UserPostService {
                                 .createdAt(comment.getCreatedAt())
                                 .build()
                 ).toList())
+                .upvoted(upvoteRepository.existsByUserIdAndPostId(user.getId(), postId))
                 .build();
     }
 

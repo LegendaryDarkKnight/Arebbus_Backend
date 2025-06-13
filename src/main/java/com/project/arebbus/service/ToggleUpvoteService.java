@@ -14,34 +14,33 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 @Transactional
 public class ToggleUpvoteService {
-  private final PostRepository postRepository;
-  private final UpvoteRepository upvoteRepository;
+    private final PostRepository postRepository;
+    private final UpvoteRepository upvoteRepository;
 
-  public ToggleUpvoteResponse toggleUpvote(User user, Long postId) {
-    var post =
-        postRepository
-            .findById(postId)
-            .orElseThrow(() -> new IllegalArgumentException("Post not found with id: " + postId));
+    public ToggleUpvoteResponse toggleUpvote(User user, Long postId) {
+        var post =
+                postRepository
+                        .findById(postId)
+                        .orElseThrow(() -> new IllegalArgumentException("Post not found with id: " + postId));
 
-    if (upvoteRepository.existsByUserIdAndPostId(user.getId(), postId)) {
-      upvoteRepository.deleteByUserIdAndPostId(user.getId(), postId);
-      return ToggleUpvoteResponse.builder().upvoteStatus(false).toggledAt(new Date()).build();
-    }
+        if (upvoteRepository.existsByUserIdAndPostId(user.getId(), postId)) {
+            upvoteRepository.deleteByUserIdAndPostId(user.getId(), postId);
+            post.setNumUpvote(upvoteRepository.countByPostId(postId));
+            return ToggleUpvoteResponse.builder().upvoteStatus(false).toggledAt(new Date()).build();
+        }
 
-    var upvote =
         upvoteRepository.save(
-            Upvote.builder()
-                .userId(user.getId())
-                .postId(post.getId())
-                .user(user)
-                .post(post)
-                .build());
+                Upvote.builder()
+                        .userId(user.getId())
+                        .postId(post.getId())
+                        .user(user)
+                        .post(post)
+                        .build());
+        post.setNumUpvote(upvoteRepository.countByPostId(postId));
 
-    System.out.println(upvote.getCreatedAt());
-
-    return ToggleUpvoteResponse.builder()
-        .upvoteStatus(true)
-        .toggledAt(upvote.getCreatedAt())
-        .build();
-  }
+        return ToggleUpvoteResponse.builder()
+                .upvoteStatus(true)
+                .toggledAt(new Date()) // Set the current date and time
+                .build();
+    }
 }

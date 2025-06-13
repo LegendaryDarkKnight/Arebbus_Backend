@@ -17,4 +17,5 @@ public class PostSummaryResponse {
     private Long numUpvote;
     private List<String> tags;
     private Date createdAt;
+    private boolean upvoted; // Indicates if the current user has upvoted this post
 }
