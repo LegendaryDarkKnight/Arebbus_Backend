@@ -138,12 +138,13 @@ jobs:
             --registry-login-server $ACR_LOGIN_SERVER \
             --registry-username ${{ secrets.ACR_USERNAME }} \
             --registry-password ${{ secrets.ACR_PASSWORD }} \
-            --cpu 1 \
-            --memory 1.5 \
+            --cpu 2 \
+            --memory 2 \
             --ports 6996 \
             --ip-address public \
             --os-type Linux \
             --restart-policy Always \
+            --dns-name-label arebbus-backend-${{ github.run_number }} \
             --environment-variables \
               SPRING_PROFILES_ACTIVE=prod \
               POSTGRES_URL="${{ secrets.POSTGRES_URL }}" \
@@ -152,7 +153,7 @@ jobs:
               SECRET_KEY="${{ secrets.SECRET_KEY }}" \
               FRONTEND_URL="${{ secrets.FRONTEND_URL }}"
 
-      - name: Get Container Instance IP
+      - name: Get Container Instance IP and Status
         run: |
           CONTAINER_IP=$(az container show \
             --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
@@ -160,5 +161,31 @@ jobs:
             --query ipAddress.ip \
             --output tsv)
           
-          echo "Application deployed successfully!"
-          echo "Access your application at: http://$CONTAINER_IP:6996"
+          CONTAINER_STATE=$(az container show \
+            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+            --name ${{ secrets.ACI_NAME }} \
+            --query containers[0].instanceView.currentState.state \
+            --output tsv)
+          
+          echo "=== Deployment Status ==="
+          echo "Container State: $CONTAINER_STATE"
+          echo "Application URL: http://$CONTAINER_IP:6996"
+          echo "=========================="
+          
+          # Wait a few seconds for container to start
+          sleep 10
+          
+          echo "=== Testing Connectivity ==="
+          CONTAINER_IP=$(az container show \
+            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+            --name ${{ secrets.ACI_NAME }} \
+            --query ipAddress.ip \
+            --output tsv)
+          
+          echo "Testing port connectivity..."
+          nc -zv $CONTAINER_IP 6996 || echo "Port 6996 not accessible"
+          
+          echo "=== Container Logs ==="
+          az container logs \
+            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+            --name ${{ secrets.ACI_NAME }} || true
