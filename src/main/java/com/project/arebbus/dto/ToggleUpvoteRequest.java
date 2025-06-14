@@ -4,5 +4,5 @@ import lombok.Data;
 
 @Data
 public class ToggleUpvoteRequest {
-  private Long postId;
+  private Long id;
 }

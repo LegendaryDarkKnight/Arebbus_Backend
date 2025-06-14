@@ -15,4 +15,6 @@ public class CommentResponse {
     private String authorName;
     private Long postId;
     private Date createdAt;
+    private Long numUpvote;
+    private boolean upvoted;
 }

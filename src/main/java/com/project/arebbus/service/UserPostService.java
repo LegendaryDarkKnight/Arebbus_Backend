@@ -30,6 +30,7 @@ public class UserPostService {
     private final PostTagRepository postTagRepository;
     private final CommentRepository commentRepository;
     private final UpvoteRepository upvoteRepository;
+    private final CommentUpvoteRepository commentUpvoteRepository;
 
     private static final Logger LOGGER = LoggerFactory.getLogger(UserPostService.class);
 
@@ -148,6 +149,8 @@ public class UserPostService {
                                 .authorName(comment.getAuthor().getName())
                                 .postId(postId)
                                 .createdAt(comment.getCreatedAt())
+                                .numUpvote(comment.getNumUpvote())
+                                .upvoted(commentUpvoteRepository.existsByUserIdAndCommentId(user.getId(), comment.getId()))
                                 .build()
                 ).toList())
                 .upvoted(upvoteRepository.existsByUserIdAndPostId(user.getId(), postId))
