@@ -142,8 +142,15 @@ jobs:
             --memory 1.5 \
             --ports 6996 \
             --ip-address public \
+            --os-type Linux \
+            --restart-policy Always \
             --environment-variables \
-              SPRING_PROFILES_ACTIVE=prod
+              SPRING_PROFILES_ACTIVE=prod \
+              POSTGRES_URL="${{ secrets.POSTGRES_URL }}" \
+              POSTGRES_USER="${{ secrets.POSTGRES_USER }}" \
+              POSTGRES_PASS="${{ secrets.POSTGRES_PASS }}" \
+              SECRET_KEY="${{ secrets.SECRET_KEY }}" \
+              FRONTEND_URL="${{ secrets.FRONTEND_URL }}"
 
       - name: Get Container Instance IP
         run: |
