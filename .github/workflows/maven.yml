@@ -94,6 +94,11 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
+      - name: Register Azure providers
+        run: |
+          az provider register --namespace Microsoft.ContainerInstance
+          az provider register --namespace Microsoft.ContainerRegistry
+
       - name: Login to Azure Container Registry
         run: |
           az acr login --name ${{ secrets.ACR_NAME }}
@@ -105,11 +110,11 @@ jobs:
         run: |
           ACR_LOGIN_SERVER="${{ secrets.ACR_NAME }}.azurecr.io"
           IMAGE_NAME="arebbus-backend"
-
+          
           # Build the Docker image
           docker build -t $ACR_LOGIN_SERVER/$IMAGE_NAME:latest .
           docker build -t $ACR_LOGIN_SERVER/$IMAGE_NAME:${{ steps.version.outputs.VERSION }} .
-
+          
           # Push to ACR
           docker push $ACR_LOGIN_SERVER/$IMAGE_NAME:latest
           docker push $ACR_LOGIN_SERVER/$IMAGE_NAME:${{ steps.version.outputs.VERSION }}
@@ -118,13 +123,13 @@ jobs:
         run: |
           ACR_LOGIN_SERVER="${{ secrets.ACR_NAME }}.azurecr.io"
           IMAGE_NAME="arebbus-backend"
-
+          
           # Delete existing container instance if it exists
           az container delete \
             --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
             --name ${{ secrets.ACI_NAME }} \
             --yes || true
-
+          
           # Create new container instance
           az container create \
             --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
@@ -147,6 +152,6 @@ jobs:
             --name ${{ secrets.ACI_NAME }} \
             --query ipAddress.ip \
             --output tsv)
-
+          
           echo "Application deployed successfully!"
           echo "Access your application at: http://$CONTAINER_IP:6996"
