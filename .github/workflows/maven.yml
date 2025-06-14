@@ -44,6 +44,16 @@ jobs:
       - name: Maven Verify
         run: mvn verify
 
+      # Verify JAR was created and is executable
+      - name: Verify JAR file
+        run: |
+          echo "=== JAR Files Created ==="
+          ls -la target/*.jar
+          echo "=== JAR File Details ==="
+          file target/*.jar
+          echo "=== Test JAR execution ==="
+          java -jar target/*.jar --version || echo "JAR version check failed"
+
       - name: Upload JAR
         uses: actions/upload-artifact@v4
         with:
@@ -67,10 +77,13 @@ jobs:
           name: app-jar
           path: downloaded-jar
 
-      - name: Rename for Docker
+      - name: Prepare Docker context
         run: |
           mkdir -p target
           cp downloaded-jar/*.jar target/app.jar
+          echo "=== JAR File Verification ==="
+          ls -la target/
+          file target/app.jar
 
       - name: Read and bump version
         id: version
@@ -130,7 +143,10 @@ jobs:
             --name ${{ secrets.ACI_NAME }} \
             --yes || true
           
-          # Create new container instance
+          # Wait for deletion to complete
+          sleep 30
+          
+          # Create new container instance with startup probe
           az container create \
             --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
             --name ${{ secrets.ACI_NAME }} \
@@ -149,10 +165,54 @@ jobs:
               POSTGRES_URL="${{ secrets.POSTGRES_URL }}" \
               POSTGRES_USER="${{ secrets.POSTGRES_USER }}" \
               POSTGRES_PASS="${{ secrets.POSTGRES_PASS }}" \
-              SECRET_KEY="${{ secrets.SECRET_KEY }}" \
-              FRONTEND_URL="${{ secrets.FRONTEND_URL }}"
+              SECRET_KEY=${{ secrets.SECRET_KEY }} \
+              FRONTEND_URL="${{ secrets.FRONTEND_URL }}" \
+              JAVA_OPTS="-Xmx1g -Djava.security.egd=file:/dev/./urandom"
 
-      - name: Get Container Instance IP and Status
+      - name: Wait and Monitor Container Status
+        run: |
+          echo "=== Waiting for container to start ==="
+          sleep 60
+          
+          # Check container status multiple times
+          for i in {1..10}; do
+            echo "=== Status Check $i ==="
+          
+            CONTAINER_STATE=$(az container show \
+              --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+              --name ${{ secrets.ACI_NAME }} \
+              --query containers[0].instanceView.currentState.state \
+              --output tsv 2>/dev/null || echo "unknown")
+          
+            echo "Container State: $CONTAINER_STATE"
+          
+            # Get detailed container info
+            az container show \
+              --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+              --name ${{ secrets.ACI_NAME }} \
+              --query "{state: containers[0].instanceView.currentState.state, exitCode: containers[0].instanceView.currentState.exitCode, detailStatus: containers[0].instanceView.currentState.detailStatus}" \
+              --output table || true
+          
+            # Try to get logs
+            echo "=== Container Logs (Attempt $i) ==="
+            az container logs \
+              --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+              --name ${{ secrets.ACI_NAME }} \
+              --container-name ${{ secrets.ACI_NAME }} || echo "No logs available yet"
+          
+            if [ "$CONTAINER_STATE" = "Running" ]; then
+              echo "Container is running!"
+              break
+            elif [ "$CONTAINER_STATE" = "Terminated" ]; then
+              echo "Container has terminated - check logs above"
+              exit 1
+            fi
+          
+            echo "Waiting 30 seconds before next check..."
+            sleep 30
+          done
+
+      - name: Get Final Status and Test Connectivity
         run: |
           CONTAINER_IP=$(az container show \
             --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
@@ -166,25 +226,16 @@ jobs:
             --query containers[0].instanceView.currentState.state \
             --output tsv)
           
-          echo "=== Deployment Status ==="
+          echo "=== Final Deployment Status ==="
           echo "Container State: $CONTAINER_STATE"
           echo "Application URL: http://$CONTAINER_IP:6996"
           echo "=========================="
           
-          # Wait a few seconds for container to start
-          sleep 10
+          if [ "$CONTAINER_STATE" = "Running" ]; then
+            echo "=== Testing Application ==="
+            # Test if port is open
+            timeout 10 bash -c "</dev/tcp/$CONTAINER_IP/6996" && echo "Port 6996 is accessible" || echo "Port 6996 is not accessible"
           
-          echo "=== Testing Connectivity ==="
-          CONTAINER_IP=$(az container show \
-            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
-            --name ${{ secrets.ACI_NAME }} \
-            --query ipAddress.ip \
-            --output tsv)
-          
-          echo "Testing port connectivity..."
-          nc -zv $CONTAINER_IP 6996 || echo "Port 6996 not accessible"
-          
-          echo "=== Container Logs ==="
-          az container logs \
-            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
-            --name ${{ secrets.ACI_NAME }} || true
+            # Try HTTP request
+            curl -f "http://$CONTAINER_IP:6996/health" || echo "Health check endpoint not responding"
+          fi
