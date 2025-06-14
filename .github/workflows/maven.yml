@@ -146,7 +146,6 @@ jobs:
             --restart-policy Always \
             --dns-name-label arebbus-backend-${{ github.run_number }} \
             --environment-variables \
-              SPRING_PROFILES_ACTIVE=prod \
               POSTGRES_URL="${{ secrets.POSTGRES_URL }}" \
               POSTGRES_USER="${{ secrets.POSTGRES_USER }}" \
               POSTGRES_PASS="${{ secrets.POSTGRES_PASS }}" \
