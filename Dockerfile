@@ -21,9 +21,12 @@ USER appuser
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:6996/health || exit 1
+  CMD curl -f http://localhost:6996/health || exit 1
 
 EXPOSE 6996
 
+# Set environment variables (optional defaults)
+ENV JAVA_OPTS=""
+
 # Use exec form for better signal handling
-ENTRYPOINT ["java", "-jar", "app.jar"]
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]

@@ -43,9 +43,6 @@ jobs:
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
 
-    outputs:
-      version-tag: v${{ github.run_number }}
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -82,18 +79,36 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Login to Azure Container Registry
+        run: |
+          az acr login --name ${{ secrets.ACR_NAME }}
+
       - name: Build and push Docker image
         run: |
-          IMAGE_NAME="${{ secrets.DOCKER_USERNAME }}/arebbus-backend"
+          DOCKER_IMAGE="${{ secrets.DOCKER_USERNAME }}/arebbus-backend"
+          ACR_IMAGE="${{ secrets.ACR_NAME }}.azurecr.io/arebbus-backend"
           VERSION_TAG="v${{ github.run_number }}"
           
-          # Build with both tags
-          docker build -t $IMAGE_NAME:latest -t $IMAGE_NAME:$VERSION_TAG .
+          # Build image
+          docker build -t $DOCKER_IMAGE:latest -t $DOCKER_IMAGE:$VERSION_TAG .
           
-          # Push both tags
-          docker push $IMAGE_NAME:latest
-          docker push $IMAGE_NAME:$VERSION_TAG
+          # Tag for ACR
+          docker tag $DOCKER_IMAGE:latest $ACR_IMAGE:latest
+          docker tag $DOCKER_IMAGE:$VERSION_TAG $ACR_IMAGE:$VERSION_TAG
           
-          echo "Built and pushed:"
-          echo "- $IMAGE_NAME:latest"
-          echo "- $IMAGE_NAME:$VERSION_TAG"
+          # Push to Docker Hub (for backup/public access)
+          docker push $DOCKER_IMAGE:latest
+          docker push $DOCKER_IMAGE:$VERSION_TAG
+          
+          # Push to ACR (for Azure deployment)
+          docker push $ACR_IMAGE:latest
+          docker push $ACR_IMAGE:$VERSION_TAG
+          
+          echo "Images pushed to:"
+          echo "- Docker Hub: $DOCKER_IMAGE:latest, $DOCKER_IMAGE:$VERSION_TAG"
+          echo "- ACR: $ACR_IMAGE:latest, $ACR_IMAGE:$VERSION_TAG"

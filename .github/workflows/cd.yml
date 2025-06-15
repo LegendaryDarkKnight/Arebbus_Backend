@@ -14,12 +14,9 @@ jobs:
 
     environment:
       name: production
-      url: http://${{ steps.deploy.outputs.container-ip }}:6996
+      url: http://arebbus-backend-latest.azurecontainer.io:6996
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
       - name: Azure Login
         uses: azure/login@v2
         with:
@@ -27,6 +24,8 @@ jobs:
 
       - name: Deploy to Azure Container Instance
         run: |
+          ACR_IMAGE="${{ secrets.ACR_NAME }}.azurecr.io/arebbus-backend:latest"
+          
           # Delete existing container if exists
           az container delete \
             --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
@@ -36,14 +35,14 @@ jobs:
           # Wait for cleanup
           sleep 30
           
-          # Create new container instance
+          # Create new container instance using ACR image
           az container create \
             --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
             --name ${{ secrets.ACI_NAME }} \
-            --image ${{ secrets.DOCKER_USERNAME }}/arebbus-backend:latest \
-            --registry-login-server docker.io \
-            --registry-username ${{ secrets.DOCKER_USERNAME }} \
-            --registry-password ${{ secrets.DOCKER_PASSWORD }} \
+            --image $ACR_IMAGE \
+            --registry-login-server ${{ secrets.ACR_NAME }}.azurecr.io \
+            --registry-username ${{ secrets.ACR_USERNAME }} \
+            --registry-password ${{ secrets.ACR_PASSWORD }} \
             --cpu 2 \
             --memory 2 \
             --ports 6996 \
@@ -96,6 +95,7 @@ jobs:
             --output tsv)
           
           echo "Application URL: http://$CONTAINER_IP:6996"
+          echo "DNS URL: http://arebbus-backend-latest.azurecontainer.io:6996"
           
           # Wait a bit more for app to fully start
           sleep 30
