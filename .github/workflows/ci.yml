@@ -67,6 +67,12 @@ jobs:
       - name: Build application
         run: mvn clean package -DskipTests
 
+      - name: Prepare Docker context
+        run: |
+          # Ensure the JAR is named consistently
+          cp target/*.jar target/app.jar
+          ls -la target/app.jar
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
