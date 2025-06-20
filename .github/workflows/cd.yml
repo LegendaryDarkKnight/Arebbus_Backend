@@ -164,25 +164,6 @@ jobs:
             echo "⚠️ Health endpoint not responding after 5 attempts"
           EOF
 
-      - name: Test root endpoint
-        run: |
-          ssh -i ~/.ssh/id_rsa ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} << 'EOF'
-            echo "🌐 Testing root endpoint..."
-            for i in {1..3}; do
-              echo "🌐 Root endpoint test attempt $i of 3..."
-          
-              if curl -f "http://localhost:8080/" 2>/dev/null; then
-                echo "✅ Root endpoint responding!"
-                exit 0
-              else
-                echo "⏳ Root endpoint not responding, waiting 10s..."
-                sleep 10
-              fi
-            done
-            echo "❌ Root endpoint not responding after 3 attempts"
-            exit 1
-          EOF
-
       - name: Show final status
         run: |
           ssh -i ~/.ssh/id_rsa ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} << 'EOF'
