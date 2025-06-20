@@ -1,4 +1,4 @@
-name: CD - Deploy to Azure
+name: CD - Deploy to Azure VM
 
 on:
   workflow_run:
@@ -14,102 +14,111 @@ jobs:
 
     environment:
       name: production
-      url: http://arebbus-backend-latest.azurecontainer.io:6996
 
     steps:
-      - name: Azure Login
-        uses: azure/login@v2
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-
-      - name: Deploy to Azure Container Instance
+      - name: Setup SSH key
         run: |
-          ACR_IMAGE="${{ secrets.ACR_NAME }}.azurecr.io/arebbus-backend:latest"
-          
-          # Delete existing container if exists
-          az container delete \
-            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
-            --name ${{ secrets.ACI_NAME }} \
-            --yes || true
-          
-          # Wait for cleanup
-          sleep 30
-          
-          # Create new container instance using ACR image
-          az container create \
-            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
-            --name ${{ secrets.ACI_NAME }} \
-            --image $ACR_IMAGE \
-            --registry-login-server ${{ secrets.ACR_NAME }}.azurecr.io \
-            --registry-username ${{ secrets.ACR_USERNAME }} \
-            --registry-password ${{ secrets.ACR_PASSWORD }} \
-            --cpu 2 \
-            --memory 2 \
-            --ports 6996 \
-            --ip-address public \
-            --os-type Linux \
-            --restart-policy Always \
-            --dns-name-label arebbus-backend-latest \
-            --environment-variables \
-              POSTGRES_URL="${{ secrets.POSTGRES_URL }}" \
-              POSTGRES_USER="${{ secrets.POSTGRES_USER }}" \
-              POSTGRES_PASS="${{ secrets.POSTGRES_PASS }}" \
-              SECRET_KEY="${{ secrets.SECRET_KEY }}" \
-              FRONTEND_URL="${{ secrets.FRONTEND_URL }}" \
-              JAVA_OPTS="-Xmx1g -Djava.security.egd=file:/dev/./urandom"
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.VM_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Wait for deployment
+      - name: Connect to Azure VM and Deploy
         run: |
-          echo "Waiting for container to start..."
-          sleep 60
+          ssh -i ~/.ssh/id_rsa ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} << 'EOF'
+            echo "🔍 Checking for existing arebbus container..."
           
-          for i in {1..10}; do
-            CONTAINER_STATE=$(az container show \
-              --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
-              --name ${{ secrets.ACI_NAME }} \
-              --query containers[0].instanceView.currentState.state \
-              --output tsv)
+            # Check if container exists and is running
+            if docker ps -q -f name=arebbus; then
+              echo "📦 Found running arebbus container, stopping it..."
+              docker stop arebbus
+            fi
           
-            echo "Container state: $CONTAINER_STATE"
+            # Check if container exists (stopped)
+            if docker ps -aq -f name=arebbus; then
+              echo "🗑️ Removing existing arebbus container..."
+              docker rm arebbus
+            fi
           
-            if [ "$CONTAINER_STATE" = "Running" ]; then
+            # Pull latest image from Docker Hub
+            echo "⬇️ Pulling latest image from Docker Hub..."
+            docker pull ${{ secrets.DOCKER_USERNAME }}/arebbus-backend:latest
+          
+            # Run new container
+            echo "🚀 Starting new arebbus container..."
+            docker run -d \
+              --name arebbus \
+              -p 8080:6996 \
+              --restart unless-stopped \
+              -e POSTGRES_URL="${{ secrets.POSTGRES_URL }}" \
+              -e POSTGRES_USER="${{ secrets.POSTGRES_USER }}" \
+              -e POSTGRES_PASS="${{ secrets.POSTGRES_PASS }}" \
+              -e SECRET_KEY="${{ secrets.SECRET_KEY }}" \
+              -e FRONTEND_URL="${{ secrets.FRONTEND_URL }}" \
+              -e JAVA_OPTS="-Xmx1g -Djava.security.egd=file:/dev/./urandom" \
+              ${{ secrets.DOCKER_USERNAME }}/arebbus-backend:latest
+          
+            # Wait for container to start
+            echo "⏳ Waiting for container to start..."
+            sleep 30
+          
+            # Check container status
+            echo "📋 Container status:"
+            docker ps -f name=arebbus --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+          
+            # Show container logs (last 20 lines)
+            echo "📄 Container logs (last 20 lines):"
+            docker logs --tail 20 arebbus
+          
+          EOF
+
+      - name: Health Check
+        run: |
+          ssh -i ~/.ssh/id_rsa ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} << 'EOF'
+            echo "🏥 Performing health checks..."
+          
+            # Wait a bit more for the application to fully start
+            sleep 60
+          
+            # Check if container is still running
+            if docker ps -q -f name=arebbus; then
               echo "✅ Container is running!"
-              break
-            elif [ "$CONTAINER_STATE" = "Terminated" ]; then
-              echo "❌ Container terminated"
-              az container logs \
-                --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
-                --name ${{ secrets.ACI_NAME }}
+          
+              # Try health check endpoints
+              for i in {1..5}; do
+                echo "🩺 Health check attempt $i..."
+          
+                if curl -f "http://localhost:6996/health" 2>/dev/null; then
+                  echo "✅ Health endpoint responding!"
+                  break
+                elif curl -f "http://localhost:6996/" 2>/dev/null; then
+                  echo "✅ Root endpoint responding!"
+                  break
+                else
+                  echo "⏳ Health check failed, retrying in 10s..."
+                  sleep 10
+                fi
+          
+                if [ $i -eq 5 ]; then
+                  echo "❌ Health checks failed after 5 attempts"
+                  echo "📄 Recent container logs:"
+                  docker logs --tail 50 arebbus
+                  exit 1
+                fi
+              done
+          
+              echo "🎉 Deployment successful!"
+              echo "📍 Application is accessible at: http://${{ secrets.VM_HOST }}:6996"
+          
+            else
+              echo "❌ Container is not running!"
+              echo "📄 Container logs:"
+              docker logs arebbus
               exit 1
             fi
-          
-            sleep 30
-          done
+          EOF
 
-      - name: Health check
+      - name: Cleanup SSH
+        if: always()
         run: |
-          CONTAINER_IP=$(az container show \
-            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
-            --name ${{ secrets.ACI_NAME }} \
-            --query ipAddress.ip \
-            --output tsv)
-          
-          echo "Application URL: http://$CONTAINER_IP:6996"
-          echo "DNS URL: http://arebbus-backend-latest.azurecontainer.io:6996"
-          
-          # Wait a bit more for app to fully start
-          sleep 30
-          
-          # Try health check (adjust endpoint as needed)
-          for i in {1..5}; do
-            if curl -f "http://$CONTAINER_IP:6996/health" 2>/dev/null; then
-              echo "✅ Health check passed!"
-              break
-            elif curl -f "http://$CONTAINER_IP:6996/" 2>/dev/null; then
-              echo "✅ Root endpoint responding!"
-              break
-            else
-              echo "⏳ Attempt $i: Health check failed, retrying..."
-              sleep 10
-            fi
-          done
+          rm -f ~/.ssh/id_rsa
