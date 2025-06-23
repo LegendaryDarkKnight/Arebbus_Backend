@@ -34,4 +34,5 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     List<Post> findMostPopularPosts();
 
     Page<Post> findAll(Pageable pageable);
+    Page<Post> findByAuthor(User author, Pageable pageable);
 }
