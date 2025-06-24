@@ -26,21 +26,21 @@ jobs:
       - name: Check for existing container
         run: |
           ssh -i ~/.ssh/id_rsa ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} << 'EOF'
-            echo "🔍 Checking for existing arebbus container..."
+            echo " Checking for existing arebbus container..."
           
             # Check if container exists and is running
             if docker ps -q -f name=arebbus; then
-              echo "📦 Found running arebbus container"
+              echo " Found running arebbus container"
               docker ps -f name=arebbus --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
             else
-              echo "ℹ️ No running arebbus container found"
+              echo " No running arebbus container found"
             fi
           
             # Check if container exists (stopped)
             if docker ps -aq -f name=arebbus; then
-              echo "📦 Found existing arebbus container (may be stopped)"
+              echo " Found existing arebbus container (may be stopped)"
             else
-              echo "ℹ️ No existing arebbus container found"
+              echo " No existing arebbus container found"
             fi
           EOF
 
@@ -48,11 +48,11 @@ jobs:
         run: |
           ssh -i ~/.ssh/id_rsa ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} << 'EOF'
             if docker ps -q -f name=arebbus; then
-              echo "🛑 Stopping running arebbus container..."
+              echo " Stopping running arebbus container..."
               docker stop arebbus
-              echo "✅ Container stopped successfully"
+              echo " Container stopped successfully"
             else
-              echo "ℹ️ No running container to stop"
+              echo " No running container to stop"
             fi
           EOF
 
@@ -60,26 +60,26 @@ jobs:
         run: |
           ssh -i ~/.ssh/id_rsa ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} << 'EOF'
             if docker ps -aq -f name=arebbus; then
-              echo "🗑️ Removing existing arebbus container..."
+              echo " Removing existing arebbus container..."
               docker rm arebbus
-              echo "✅ Container removed successfully"
+              echo " Container removed successfully"
             else
-              echo "ℹ️ No existing container to remove"
+              echo " No existing container to remove"
             fi
           EOF
 
       - name: Pull latest image
         run: |
           ssh -i ~/.ssh/id_rsa ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} << 'EOF'
-            echo "⬇️ Pulling latest image from Docker Hub..."
+            echo " Pulling latest image from Docker Hub..."
             docker pull ${{ secrets.DOCKER_USERNAME }}/arebbus-backend:latest
-            echo "✅ Image pulled successfully"
+            echo " Image pulled successfully"
           EOF
 
       - name: Start new container
         run: |
           ssh -i ~/.ssh/id_rsa ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} << 'EOF'
-            echo "🚀 Starting new arebbus container..."
+            echo " Starting new arebbus container..."
             docker run -d \
               --name arebbus \
               -p 8080:6996 \
@@ -91,7 +91,7 @@ jobs:
               -e FRONTEND_URL="${{ secrets.FRONTEND_URL }}" \
               -e JAVA_OPTS="-Xmx1g -Djava.security.egd=file:/dev/./urandom" \
               ${{ secrets.DOCKER_USERNAME }}/arebbus-backend:latest
-            echo "✅ Container started successfully"
+            echo " Container started successfully"
           EOF
 
       - name: Wait for container startup
@@ -99,7 +99,7 @@ jobs:
           ssh -i ~/.ssh/id_rsa ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} << 'EOF'
             echo "⏳ Waiting for container to initialize..."
             sleep 30
-            echo "✅ Wait period completed"
+            echo " Wait period completed"
           EOF
 
       - name: Check container status
@@ -109,9 +109,9 @@ jobs:
             docker ps -f name=arebbus --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
           
             if docker ps -q -f name=arebbus; then
-              echo "✅ Container is running"
+              echo " Container is running"
             else
-              echo "❌ Container is not running"
+              echo " Container is not running"
               exit 1
             fi
           EOF
@@ -128,7 +128,7 @@ jobs:
           ssh -i ~/.ssh/id_rsa ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} << 'EOF'
             echo "⏳ Waiting for application to fully start..."
             sleep 60
-            echo "✅ Application startup wait completed"
+            echo " Application startup wait completed"
           EOF
 
       - name: Verify container is running
@@ -136,11 +136,11 @@ jobs:
           ssh -i ~/.ssh/id_rsa ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} << 'EOF'
             echo "🔍 Verifying container is still running..."
             if docker ps -q -f name=arebbus; then
-              echo "✅ Container is running!"
+              echo " Container is running!"
               docker ps -f name=arebbus --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
             else
-              echo "❌ Container is not running!"
-              echo "📄 Container logs:"
+              echo " Container is not running!"
+              echo " Container logs:"
               docker logs arebbus
               exit 1
             fi
@@ -149,28 +149,28 @@ jobs:
       - name: Test health endpoint
         run: |
           ssh -i ~/.ssh/id_rsa ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} << 'EOF'
-            echo "🩺 Testing health endpoint..."
+            echo " Testing health endpoint..."
             for i in {1..5}; do
-              echo "🩺 Health check attempt $i of 5..."
+              echo " Health check attempt $i of 5..."
           
               if curl -f "http://localhost:8080/health" 2>/dev/null; then
-                echo "✅ Health endpoint responding!"
+                echo " Health endpoint responding!"
                 exit 0
               else
-                echo "⏳ Health endpoint not responding, waiting 10s..."
+                echo " Health endpoint not responding, waiting 10s..."
                 sleep 10
               fi
             done
-            echo "⚠️ Health endpoint not responding after 5 attempts"
+            echo " Health endpoint not responding after 5 attempts"
           EOF
 
       - name: Show final status
         run: |
           ssh -i ~/.ssh/id_rsa ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} << 'EOF'
-            echo "🎉 Deployment completed successfully!"
-            echo "📍 Application is accessible at: http://${{ secrets.VM_HOST }}:8080"
+            echo " Deployment completed successfully!"
+            echo " Application is accessible at: http://${{ secrets.VM_HOST }}:8080"
             echo ""
-            echo "📋 Final container status:"
+            echo " Final container status:"
             docker ps -f name=arebbus --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
           EOF
 
