@@ -23,158 +23,262 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.VM_HOST }} >> ~/.ssh/known_hosts
 
+      - name: Create deployment script
+        run: |
+          cat > deploy_script.sh << 'DEPLOY_EOF'
+          #!/bin/bash
+          set -e
+          
+          # Colors for output
+          RED='\033[0;31m'
+          GREEN='\033[0;32m'
+          YELLOW='\033[1;33m'
+          BLUE='\033[0;34m'
+          CYAN='\033[0;36m'
+          NC='\033[0m' # No Color
+          
+          log() {
+            echo -e "${CYAN}[$(date '+%Y-%m-%d %H:%M:%S')]${NC} $1"
+          }
+          
+          success() {
+            echo -e "${GREEN}[SUCCESS]${NC} $1"
+          }
+          
+          error() {
+            echo -e "${RED}[ERROR]${NC} $1"
+          }
+          
+          warning() {
+            echo -e "${YELLOW}[WARNING]${NC} $1"
+          }
+          
+          info() {
+            echo -e "${BLUE}[INFO]${NC} $1"
+          }
+          
+          case "$1" in
+            check_container)
+              log "Checking for existing arebbus container..."
+          
+              if docker ps -q -f name=arebbus; then
+                info "Found running arebbus container"
+                docker ps -f name=arebbus --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+                echo "CONTAINER_RUNNING=true" > /tmp/container_status
+              else
+                info "No running arebbus container found"
+                echo "CONTAINER_RUNNING=false" > /tmp/container_status
+              fi
+          
+              if docker ps -aq -f name=arebbus; then
+                info "Found existing arebbus container (may be stopped)"
+                echo "CONTAINER_EXISTS=true" >> /tmp/container_status
+              else
+                info "No existing arebbus container found"
+                echo "CONTAINER_EXISTS=false" >> /tmp/container_status
+              fi
+              ;;
+          
+            stop_container)
+              source /tmp/container_status
+              if [ "$CONTAINER_RUNNING" = "true" ]; then
+                log "Stopping running arebbus container..."
+                docker stop arebbus
+                success "Container stopped successfully"
+              else
+                info "No running container to stop"
+              fi
+              ;;
+          
+            remove_container)
+              source /tmp/container_status
+              if [ "$CONTAINER_EXISTS" = "true" ]; then
+                log "Removing existing arebbus container..."
+                docker rm arebbus
+                success "Container removed successfully"
+              else
+                info "No existing container to remove"
+              fi
+              ;;
+          
+            pull_image)
+              log "Pulling latest image from Docker Hub..."
+              docker pull $DOCKER_USERNAME/arebbus-backend:latest
+              success "Image pulled successfully"
+              ;;
+          
+            start_container)
+              log "Starting new arebbus container..."
+              docker run -d \
+                --name arebbus \
+                -p 8080:6996 \
+                --restart unless-stopped \
+                --health-cmd="curl -f http://localhost:6996/health || exit 1" \
+                --health-interval=30s \
+                --health-timeout=10s \
+                --health-retries=3 \
+                --health-start-period=40s \
+                -e POSTGRES_URL="$POSTGRES_URL" \
+                -e POSTGRES_USER="$POSTGRES_USER" \
+                -e POSTGRES_PASS="$POSTGRES_PASS" \
+                -e SECRET_KEY="$SECRET_KEY" \
+                -e FRONTEND_URL="$FRONTEND_URL" \
+                -e JAVA_OPTS="-Xmx1g -Djava.security.egd=file:/dev/./urandom" \
+                $DOCKER_USERNAME/arebbus-backend:latest
+              success "Container started successfully"
+              ;;
+          
+            wait_startup)
+              log "Waiting for container to initialize..."
+              sleep 30
+              success "Wait period completed"
+              ;;
+          
+            check_status)
+              log "Checking container status..."
+              docker ps -f name=arebbus --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+          
+              if docker ps -q -f name=arebbus; then
+                success "Container is running"
+              else
+                error "Container is not running"
+                exit 1
+              fi
+              ;;
+          
+            show_logs)
+              log "Container logs (last 20 lines):"
+              docker logs --tail 20 arebbus
+              ;;
+          
+            wait_app_startup)
+              log "Waiting for application to fully start..."
+              sleep 60
+              success "Application startup wait completed"
+              ;;
+          
+            verify_running)
+              log "Verifying container is still running..."
+              if docker ps -q -f name=arebbus; then
+                success "Container is running!"
+                docker ps -f name=arebbus --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+              else
+                error "Container is not running!"
+                echo "Container logs:"
+                docker logs arebbus
+                exit 1
+              fi
+              ;;
+          
+            test_health)
+              log "Testing health endpoint..."
+              for i in {1..5}; do
+                info "Health check attempt $i of 5..."
+          
+                if curl -f "http://localhost:8080/health" 2>/dev/null; then
+                  success "Health endpoint responding!"
+                  exit 0
+                else
+                  warning "Health endpoint not responding, waiting 10s..."
+                  sleep 10
+                fi
+              done
+              error "Health endpoint not responding after 5 attempts"
+              exit 1
+              ;;
+          
+            final_status)
+              success "Deployment completed successfully!"
+              info "Application is accessible at: http://$VM_HOST:8080"
+              echo ""
+              log "Final container status:"
+              docker ps -f name=arebbus --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+              ;;
+          
+            *)
+              error "Unknown command: $1"
+              exit 1
+              ;;
+          esac
+          DEPLOY_EOF
+          
+          chmod +x deploy_script.sh
+
+      - name: Upload deployment script
+        run: |
+          scp -i ~/.ssh/id_rsa deploy_script.sh ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }}:/tmp/
+
       - name: Check for existing container
         run: |
-          ssh -i ~/.ssh/id_rsa ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} << 'EOF'
-            echo " Checking for existing arebbus container..."
-          
-            # Check if container exists and is running
-            if docker ps -q -f name=arebbus; then
-              echo " Found running arebbus container"
-              docker ps -f name=arebbus --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
-            else
-              echo " No running arebbus container found"
-            fi
-          
-            # Check if container exists (stopped)
-            if docker ps -aq -f name=arebbus; then
-              echo " Found existing arebbus container (may be stopped)"
-            else
-              echo " No existing arebbus container found"
-            fi
-          EOF
+          ssh -i ~/.ssh/id_rsa ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} \
+            "/tmp/deploy_script.sh check_container"
 
       - name: Stop existing container
         run: |
-          ssh -i ~/.ssh/id_rsa ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} << 'EOF'
-            if docker ps -q -f name=arebbus; then
-              echo " Stopping running arebbus container..."
-              docker stop arebbus
-              echo " Container stopped successfully"
-            else
-              echo " No running container to stop"
-            fi
-          EOF
+          ssh -i ~/.ssh/id_rsa ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} \
+            "/tmp/deploy_script.sh stop_container"
 
       - name: Remove existing container
         run: |
-          ssh -i ~/.ssh/id_rsa ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} << 'EOF'
-            if docker ps -aq -f name=arebbus; then
-              echo " Removing existing arebbus container..."
-              docker rm arebbus
-              echo " Container removed successfully"
-            else
-              echo " No existing container to remove"
-            fi
-          EOF
+          ssh -i ~/.ssh/id_rsa ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} \
+            "DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }} /tmp/deploy_script.sh remove_container"
 
       - name: Pull latest image
         run: |
-          ssh -i ~/.ssh/id_rsa ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} << 'EOF'
-            echo " Pulling latest image from Docker Hub..."
-            docker pull ${{ secrets.DOCKER_USERNAME }}/arebbus-backend:latest
-            echo " Image pulled successfully"
-          EOF
+          ssh -i ~/.ssh/id_rsa ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} \
+            "DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }} /tmp/deploy_script.sh pull_image"
 
       - name: Start new container
         run: |
-          ssh -i ~/.ssh/id_rsa ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} << 'EOF'
-            echo " Starting new arebbus container..."
-            docker run -d \
-              --name arebbus \
-              -p 8080:6996 \
-              --restart unless-stopped \
-              -e POSTGRES_URL="${{ secrets.POSTGRES_URL }}" \
-              -e POSTGRES_USER="${{ secrets.POSTGRES_USER }}" \
-              -e POSTGRES_PASS="${{ secrets.POSTGRES_PASS }}" \
-              -e SECRET_KEY="${{ secrets.SECRET_KEY }}" \
-              -e FRONTEND_URL="${{ secrets.FRONTEND_URL }}" \
-              -e JAVA_OPTS="-Xmx1g -Djava.security.egd=file:/dev/./urandom" \
-              ${{ secrets.DOCKER_USERNAME }}/arebbus-backend:latest
-            echo " Container started successfully"
-          EOF
+          ssh -i ~/.ssh/id_rsa ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} \
+            "DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }} \
+             POSTGRES_URL=${{ secrets.POSTGRES_URL }} \
+             POSTGRES_USER=${{ secrets.POSTGRES_USER }} \
+             POSTGRES_PASS=${{ secrets.POSTGRES_PASS }} \
+             SECRET_KEY=${{ secrets.SECRET_KEY }} \
+             FRONTEND_URL=${{ secrets.FRONTEND_URL }} \
+             /tmp/deploy_script.sh start_container"
 
       - name: Wait for container startup
         run: |
-          ssh -i ~/.ssh/id_rsa ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} << 'EOF'
-            echo "⏳ Waiting for container to initialize..."
-            sleep 30
-            echo " Wait period completed"
-          EOF
+          ssh -i ~/.ssh/id_rsa ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} \
+            "/tmp/deploy_script.sh wait_startup"
 
       - name: Check container status
         run: |
-          ssh -i ~/.ssh/id_rsa ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} << 'EOF'
-            echo "📋 Checking container status..."
-            docker ps -f name=arebbus --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
-          
-            if docker ps -q -f name=arebbus; then
-              echo " Container is running"
-            else
-              echo " Container is not running"
-              exit 1
-            fi
-          EOF
+          ssh -i ~/.ssh/id_rsa ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} \
+            "/tmp/deploy_script.sh check_status"
 
       - name: Show container logs
         run: |
-          ssh -i ~/.ssh/id_rsa ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} << 'EOF'
-            echo "📄 Container logs (last 20 lines):"
-            docker logs --tail 20 arebbus
-          EOF
+          ssh -i ~/.ssh/id_rsa ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} \
+            "/tmp/deploy_script.sh show_logs"
 
       - name: Wait for application startup
         run: |
-          ssh -i ~/.ssh/id_rsa ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} << 'EOF'
-            echo "⏳ Waiting for application to fully start..."
-            sleep 60
-            echo " Application startup wait completed"
-          EOF
+          ssh -i ~/.ssh/id_rsa ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} \
+            "/tmp/deploy_script.sh wait_app_startup"
 
       - name: Verify container is running
         run: |
-          ssh -i ~/.ssh/id_rsa ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} << 'EOF'
-            echo "🔍 Verifying container is still running..."
-            if docker ps -q -f name=arebbus; then
-              echo " Container is running!"
-              docker ps -f name=arebbus --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
-            else
-              echo " Container is not running!"
-              echo " Container logs:"
-              docker logs arebbus
-              exit 1
-            fi
-          EOF
+          ssh -i ~/.ssh/id_rsa ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} \
+            "/tmp/deploy_script.sh verify_running"
 
       - name: Test health endpoint
         run: |
-          ssh -i ~/.ssh/id_rsa ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} << 'EOF'
-            echo " Testing health endpoint..."
-            for i in {1..5}; do
-              echo " Health check attempt $i of 5..."
-          
-              if curl -f "http://localhost:8080/health" 2>/dev/null; then
-                echo " Health endpoint responding!"
-                exit 0
-              else
-                echo " Health endpoint not responding, waiting 10s..."
-                sleep 10
-              fi
-            done
-            echo " Health endpoint not responding after 5 attempts"
-          EOF
+          ssh -i ~/.ssh/id_rsa ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} \
+            "/tmp/deploy_script.sh test_health"
 
       - name: Show final status
         run: |
-          ssh -i ~/.ssh/id_rsa ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} << 'EOF'
-            echo " Deployment completed successfully!"
-            echo " Application is accessible at: http://${{ secrets.VM_HOST }}:8080"
-            echo ""
-            echo " Final container status:"
-            docker ps -f name=arebbus --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
-          EOF
+          ssh -i ~/.ssh/id_rsa ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} \
+            "VM_HOST=${{ secrets.VM_HOST }} /tmp/deploy_script.sh final_status"
 
-      - name: Cleanup SSH
+      - name: Cleanup
         if: always()
         run: |
+          # Cleanup remote script
+          ssh -i ~/.ssh/id_rsa ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} \
+            "rm -f /tmp/deploy_script.sh /tmp/container_status" || true
+          # Cleanup SSH key
           rm -f ~/.ssh/id_rsa
