@@ -42,6 +42,15 @@ public class UserPostController {
         return ResponseEntity.ok(userPostService.getAllPostsPage(user, page, size));
     }
 
+    @GetMapping("/my")
+    public ResponseEntity<PagedPostResponse> getMyPosts(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            Authentication authentication) {
+        User user = (User) authentication.getPrincipal();
+        return ResponseEntity.ok(userPostService.getMyPostsPage(user, page, size));
+    }
+
 
     @GetMapping
     public ResponseEntity<PostResponse> getPostById(@RequestParam Long postId, Authentication authentication) {

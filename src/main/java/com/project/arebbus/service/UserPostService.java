@@ -110,8 +110,7 @@ public class UserPostService {
                         .content(post.getContent())
                         .numUpvote(post.getNumUpvote())
                         .createdAt(post.getCreatedAt())
-                        .tags(post.getPostTags().stream()
-                                .map(PostTag::getTag)
+                        .tags(tagRepository.findTagsByPostId(post.getId()).stream()
                                 .map(Tag::getName)
                                 .toList())
                         .upvoted(upvoteRepository.existsByUserIdAndPostId(user.getId(), post.getId()))
@@ -138,8 +137,7 @@ public class UserPostService {
                 .content(post.getContent())
                 .numUpvote(post.getNumUpvote())
                 .createdAt(post.getCreatedAt())
-                .tags(post.getPostTags().stream()
-                        .map(PostTag::getTag)
+                .tags(tagRepository.findTagsByPostId(postId).stream()
                         .map(Tag::getName)
                         .toList())
                 .comments(commentRepository.findByPost(post).stream().map(
@@ -158,5 +156,32 @@ public class UserPostService {
     }
 
 
+    public PagedPostResponse getMyPostsPage(User user, int page, int size) {
+        Page<Post> posts = postRepository.findByAuthor(user, PageRequest.of(page, size));
+
+        LOGGER.debug("Total posts found for user {}: {}", user.getId(), posts.getTotalElements());
+
+        List<PostSummaryResponse> postSummaries = posts.getContent().stream().map(
+                post -> PostSummaryResponse.builder()
+                        .postId(post.getId())
+                        .authorName(post.getAuthor().getName())
+                        .content(post.getContent())
+                        .numUpvote(post.getNumUpvote())
+                        .createdAt(post.getCreatedAt())
+                        .tags(tagRepository.findTagsByPostId(post.getId()).stream()
+                                .map(Tag::getName)
+                                .toList())
+                        .upvoted(upvoteRepository.existsByUserIdAndPostId(user.getId(), post.getId()))
+                        .build()
+        ).toList();
+
+        return PagedPostResponse.builder()
+                .posts(postSummaries)
+                .page(posts.getNumber())
+                .size(posts.getSize())
+                .totalPages(posts.getTotalPages())
+                .totalElements(posts.getTotalElements())
+                .build();
+    }
 }
 
