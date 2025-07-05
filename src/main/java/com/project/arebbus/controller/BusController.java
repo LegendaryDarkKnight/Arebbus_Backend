@@ -1,6 +1,8 @@
 package com.project.arebbus.controller;
 
 import com.project.arebbus.dto.BusCreateRequest;
+import com.project.arebbus.dto.BusInstallRequest;
+import com.project.arebbus.dto.BusInstallResponse;
 import com.project.arebbus.dto.BusResponse;
 import com.project.arebbus.dto.PagedBusResponse;
 import com.project.arebbus.model.User;
@@ -36,5 +38,26 @@ public class BusController {
             Authentication authentication) {
         User user = (User) authentication.getPrincipal();
         return ResponseEntity.ok(busService.getAllBuses(user, page, size));
+    }
+
+    @PostMapping("/install")
+    public ResponseEntity<BusInstallResponse> installBus(@RequestBody BusInstallRequest request, Authentication authentication) {
+        User user = (User) authentication.getPrincipal();
+        return ResponseEntity.ok(busService.installBus(user, request));
+    }
+
+    @PostMapping("/uninstall")
+    public ResponseEntity<BusInstallResponse> uninstallBus(@RequestBody BusInstallRequest request, Authentication authentication) {
+        User user = (User) authentication.getPrincipal();
+        return ResponseEntity.ok(busService.uninstallBus(user, request));
+    }
+
+    @GetMapping("/installed")
+    public ResponseEntity<PagedBusResponse> getInstalledBuses(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            Authentication authentication) {
+        User user = (User) authentication.getPrincipal();
+        return ResponseEntity.ok(busService.getInstalledBuses(user, page, size));
     }
 }

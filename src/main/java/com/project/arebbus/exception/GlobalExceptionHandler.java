@@ -46,6 +46,16 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse(e.getMessage()));
     }
 
+    @ExceptionHandler(BusAlreadyInstalledException.class)
+    public ResponseEntity<?> handleBusAlreadyInstalledException(BusAlreadyInstalledException e) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse(e.getMessage()));
+    }
+
+    @ExceptionHandler(BusNotInstalledException.class)
+    public ResponseEntity<?> handleBusNotInstalledException(BusNotInstalledException e) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse(e.getMessage()));
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<?> handleException(Exception e) {
         e.printStackTrace(System.err);
