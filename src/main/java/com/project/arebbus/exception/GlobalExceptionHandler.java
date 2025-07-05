@@ -31,6 +31,11 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse(e.getMessage()));
     }
 
+    @ExceptionHandler(StopNotFoundException.class)
+    public ResponseEntity<?> handleStopNotFoundException(StopNotFoundException e) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse(e.getMessage()));
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<?> handleException(Exception e) {
         e.printStackTrace(System.err);
