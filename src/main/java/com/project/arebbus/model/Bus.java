@@ -1,5 +1,6 @@
 package com.project.arebbus.model;
 
+import jakarta.annotation.Nullable;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -18,6 +19,9 @@ public class Bus {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(nullable = false)
+    private String name;
+
     @ManyToOne
     @JoinColumn(name = "author_id", nullable = false)
     private User author;
@@ -35,6 +39,7 @@ public class Bus {
     @Column(name = "num_upvote", nullable = false)
     private Long numUpvote;
 
+    @Nullable
     private String status;
 
     @ManyToOne
