@@ -10,6 +10,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/stop")
@@ -33,5 +35,13 @@ public class StopController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         return ResponseEntity.ok(stopService.getAllStops(page, size));
+    }
+
+    @GetMapping("/near")
+    public ResponseEntity<List<StopResponse>> getNearbyStops(
+            @RequestParam double latitude,
+            @RequestParam double longitude,
+            @RequestParam double radius) {
+        return ResponseEntity.ok(stopService.getNearbyStops(latitude, longitude, radius));
     }
 }
