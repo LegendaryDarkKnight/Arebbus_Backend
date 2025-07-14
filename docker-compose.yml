@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASS}
+      POSTGRES_DB: Arebbus
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-sql:/docker-entrypoint-initdb.d
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - arebbus-network
+
+  arebbus-backend:
+    image: ${DOCKER_USERNAME}/arebbus-backend:latest
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      POSTGRES_URL: ${POSTGRES_URL:-jdbc:postgresql://postgres:5433/Arebbus}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASS: ${POSTGRES_PASS}
+      SECRET_KEY: ${SECRET_KEY}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      JAVA_OPTS: "-Xmx1g -Djava.security.egd=file:/dev/./urandom"
+    ports:
+      - "8080:6996"
+    volumes:
+      - arebbus_data:/app/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6996/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+    networks:
+      - arebbus-network
+
+volumes:
+  postgres_data:
+    driver: local
+  arebbus_data:
+    driver: local
+
+networks:
+  arebbus-network:
+    driver: bridge

@@ -39,3 +39,5 @@ doc_set.txt
 subscription_id.txt
 azure_cred.txt
 backUp.txt
+init-sql
+.env_global
