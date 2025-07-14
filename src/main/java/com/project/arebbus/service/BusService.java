@@ -168,6 +168,7 @@ public class BusService {
                     .numUpvote(bus.getBasedOn().getNumUpvote())
                     .status(bus.getBasedOn().getStatus())
                     .upvoted(busUpvoteRepository.existsByUserIdAndBusId(user.getId(), bus.getBasedOn().getId()))
+                    .installed(installRepository.existsByUserAndBus(user, bus.getBasedOn()))
                     .build();
         }
 
@@ -182,6 +183,7 @@ public class BusService {
                 .status(bus.getStatus())
                 .basedOn(basedOnResponse)
                 .upvoted(busUpvoteRepository.existsByUserIdAndBusId(user.getId(), bus.getId()))
+                .installed(installRepository.existsByUserAndBus(user, bus))
                 .build();
     }
 

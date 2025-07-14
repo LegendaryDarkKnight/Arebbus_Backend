@@ -15,10 +15,10 @@ public interface InstallRepository extends JpaRepository<Install, InstallId> {
     boolean existsByUserAndBus(User user, Bus bus);
 
     // Count installations for a specific bus
-    @Query(nativeQuery = true,value = "SELECT COUNT(i) FROM Install i WHERE i.bus = :bus")
+    @Query("SELECT COUNT(i) FROM Install i WHERE i.bus = :bus")
     Long countInstallationsByBus(@Param("bus") Bus bus);
 
     // Find most active users (by installation count)
-    @Query(nativeQuery = true, value = "SELECT i.user FROM Install i GROUP BY i.user ORDER BY COUNT(i) DESC")
+    @Query("SELECT i.user FROM Install i GROUP BY i.user ORDER BY COUNT(i) DESC")
     List<User> findMostActiveInstallers();
 }

@@ -13,9 +13,7 @@ public interface StopRepository extends JpaRepository<Stop, Long> {
     List<Stop> findByNameContainingIgnoreCase(String name);
 
     // Find stops near a location
-    @Query(nativeQuery = true,
-            value =
-            """
+    @Query("""
             SELECT s FROM Stop s
             WHERE s.latitude BETWEEN :minLat AND :maxLat
             AND s.longitude BETWEEN :minLon AND :maxLon
@@ -24,13 +22,10 @@ public interface StopRepository extends JpaRepository<Stop, Long> {
                                @Param("minLon") BigDecimal minLon, @Param("maxLon") BigDecimal maxLon);
 
     // Find stops subscribed by a user
-    @Query(nativeQuery = true,
-            value =
-            """
-            SELECT s FROM Stop
-            s JOIN s.subscriptions ss
+    @Query("""
+            SELECT s FROM Stop s
+            JOIN s.subscriptions ss
             WHERE ss.user = :user
-            """
-    )
+            """)
     List<Stop> findStopsBySubscribedUser(@Param("user") User user);
 }
