@@ -61,6 +61,11 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse(e.getMessage()));
     }
 
+    @ExceptionHandler(InvalidLocationStatusTransitionException.class)
+    public ResponseEntity<?> handleInvalidLocationStatusTransitionException(InvalidLocationStatusTransitionException e) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse(e.getMessage()));
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<?> handleException(Exception e) {
         e.printStackTrace(System.err);

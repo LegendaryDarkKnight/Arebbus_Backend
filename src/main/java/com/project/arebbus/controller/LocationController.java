@@ -1,7 +1,9 @@
 package com.project.arebbus.controller;
 
+import com.project.arebbus.dto.BusLocationResponse;
 import com.project.arebbus.dto.LocationResponse;
 import com.project.arebbus.dto.LocationSetRequest;
+import com.project.arebbus.dto.LocationUpdateRequest;
 import com.project.arebbus.model.User;
 import com.project.arebbus.service.LocationService;
 import lombok.RequiredArgsConstructor;
@@ -24,16 +26,16 @@ public class LocationController {
     }
 
     @PostMapping("/user/on-bus")
-    public ResponseEntity<LocationResponse> setUserOnBus(@RequestBody LocationSetRequest request, Authentication authentication) {
+    public ResponseEntity<LocationResponse> setUserOnBus(@RequestBody LocationUpdateRequest request, Authentication authentication) {
         User user = (User) authentication.getPrincipal();
         LocationResponse response = locationService.setUserOnBus(user, request);
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping("/user/left-bus")
-    public ResponseEntity<LocationResponse> setUserLeftBus(@RequestBody LocationSetRequest request, Authentication authentication) {
+    @PostMapping("/user/no-track")
+    public ResponseEntity<LocationResponse> setUserNoTrack(@RequestBody LocationUpdateRequest request, Authentication authentication) {
         User user = (User) authentication.getPrincipal();
-        LocationResponse response = locationService.setUserLeftBus(user, request);
+        LocationResponse response = locationService.setUserNoTrack(user, request);
         return ResponseEntity.ok(response);
     }
 
@@ -41,6 +43,12 @@ public class LocationController {
     public ResponseEntity<LocationResponse> getUserCurrentLocation(Authentication authentication) {
         User user = (User) authentication.getPrincipal();
         LocationResponse response = locationService.getUserCurrentLocation(user);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/bus/get")
+    public ResponseEntity<BusLocationResponse> getBusLocations(@RequestParam Long busId) {
+        BusLocationResponse response = locationService.getBusLocations(busId);
         return ResponseEntity.ok(response);
     }
 }

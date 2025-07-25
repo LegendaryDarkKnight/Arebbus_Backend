@@ -13,6 +13,7 @@ import java.util.List;
 
 public interface LocationRepository extends JpaRepository<Location, LocationId> {
     List<Location> findByBus(Bus bus);
+    List<Location> findByBusId(Long busId);
     List<Location> findByUser(User user);
     List<Location> findByStatus(LocationStatus status);
     List<Location> findByTimeBetween(LocalDateTime start, LocalDateTime end);

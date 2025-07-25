@@ -1,13 +1,12 @@
 package com.project.arebbus.model;
+
 import jakarta.persistence.*;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
-
-
 
 @Data
 @Builder
@@ -18,7 +17,7 @@ import java.time.LocalDateTime;
 @IdClass(LocationId.class)
 public class Location {
     @Id
-    @Column(name = "bus_id")
+    @Column(name = "bus_id", nullable = true)
     private Long busId;
 
     @Id
