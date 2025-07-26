@@ -5,6 +5,7 @@ import com.project.arebbus.dto.BusLocationResponse;
 import com.project.arebbus.dto.LocationResponse;
 import com.project.arebbus.dto.LocationSetRequest;
 import com.project.arebbus.dto.LocationUpdateRequest;
+import com.project.arebbus.dto.WaitingUsersCountResponse;
 import com.project.arebbus.exception.BusNotFoundException;
 import com.project.arebbus.exception.InvalidLocationStatusTransitionException;
 import com.project.arebbus.exception.LocationNotFoundException;
@@ -272,5 +273,64 @@ public class LocationService {
         double latDiff = loc1.getLatitude().subtract(loc2.getLatitude()).doubleValue();
         double lonDiff = loc1.getLongitude().subtract(loc2.getLongitude()).doubleValue();
         return Math.sqrt(latDiff * latDiff + lonDiff * lonDiff);
+    }
+
+    public LocationResponse updateUserLocation(User user, LocationUpdateRequest request) {
+        // Get user's current location to preserve status and bus info
+        Location lastLocation = getUserLastLocation(user);
+        
+        Location location = Location.builder()
+                .busId(lastLocation.getBusId())
+                .userId(user.getId())
+                .latitude(request.getLatitude())
+                .longitude(request.getLongitude())
+                .time(LocalDateTime.now())
+                .status(lastLocation.getStatus()) // Keep same status
+                .bus(lastLocation.getBus())
+                .user(user)
+                .build();
+
+        Location savedLocation = locationRepository.save(location);
+
+        return LocationResponse.builder()
+                .userId(savedLocation.getUserId())
+                .busId(savedLocation.getBusId())
+                .busName(savedLocation.getBus() != null ? savedLocation.getBus().getName() : null)
+                .latitude(savedLocation.getLatitude())
+                .longitude(savedLocation.getLongitude())
+                .time(savedLocation.getTime())
+                .status(savedLocation.getStatus())
+                .build();
+    }
+
+    public WaitingUsersCountResponse getWaitingUsersCount(User user) {
+        // Verify user is in WAITING status
+        LocationStatus currentStatus = getCurrentUserStatus(user);
+        if (currentStatus != LocationStatus.WAITING) {
+            throw new InvalidLocationStatusTransitionException("User must be in WAITING status to get waiting count. Current status: " + currentStatus);
+        }
+
+        // Get user's current bus
+        Location userLocation = getUserLastLocation(user);
+        Bus bus = userLocation.getBus();
+
+        // Count all users waiting for the same bus
+        List<Location> allBusLocations = locationRepository.findByBusId(bus.getId());
+        
+        long waitingCount = allBusLocations.stream()
+                .collect(java.util.stream.Collectors.groupingBy(Location::getUserId))
+                .values()
+                .stream()
+                .map(userLocations -> userLocations.stream()
+                        .reduce((loc1, loc2) -> loc1.getTime().isAfter(loc2.getTime()) ? loc1 : loc2)
+                        .orElse(null))
+                .filter(location -> location != null && location.getStatus() == LocationStatus.WAITING)
+                .count();
+
+        return WaitingUsersCountResponse.builder()
+                .busId(bus.getId())
+                .busName(bus.getName())
+                .waitingCount((int) waitingCount)
+                .build();
     }
 }

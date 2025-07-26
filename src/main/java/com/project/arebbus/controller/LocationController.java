@@ -4,6 +4,7 @@ import com.project.arebbus.dto.BusLocationResponse;
 import com.project.arebbus.dto.LocationResponse;
 import com.project.arebbus.dto.LocationSetRequest;
 import com.project.arebbus.dto.LocationUpdateRequest;
+import com.project.arebbus.dto.WaitingUsersCountResponse;
 import com.project.arebbus.model.User;
 import com.project.arebbus.service.LocationService;
 import lombok.RequiredArgsConstructor;
@@ -49,6 +50,20 @@ public class LocationController {
     @GetMapping("/bus/get")
     public ResponseEntity<BusLocationResponse> getBusLocations(@RequestParam Long busId) {
         BusLocationResponse response = locationService.getBusLocations(busId);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/user/update")
+    public ResponseEntity<LocationResponse> updateUserLocation(@RequestBody LocationUpdateRequest request, Authentication authentication) {
+        User user = (User) authentication.getPrincipal();
+        LocationResponse response = locationService.updateUserLocation(user, request);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/users/wait-count")
+    public ResponseEntity<WaitingUsersCountResponse> getWaitingUsersCount(Authentication authentication) {
+        User user = (User) authentication.getPrincipal();
+        WaitingUsersCountResponse response = locationService.getWaitingUsersCount(user);
         return ResponseEntity.ok(response);
     }
 }
