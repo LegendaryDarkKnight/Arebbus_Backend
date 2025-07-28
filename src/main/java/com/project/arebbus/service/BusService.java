@@ -1,32 +1,21 @@
 package com.project.arebbus.service;
 
-import com.project.arebbus.dto.BusCreateRequest;
-import com.project.arebbus.dto.BusInstallRequest;
-import com.project.arebbus.dto.BusInstallResponse;
-import com.project.arebbus.dto.BusResponse;
-import com.project.arebbus.dto.PagedBusResponse;
-import com.project.arebbus.dto.RouteResponse;
-import com.project.arebbus.dto.StopResponse;
+import com.project.arebbus.dto.*;
 import com.project.arebbus.exception.BusAlreadyInstalledException;
 import com.project.arebbus.exception.BusNotFoundException;
 import com.project.arebbus.exception.BusNotInstalledException;
 import com.project.arebbus.exception.RouteNotFoundException;
-import com.project.arebbus.model.Bus;
-import com.project.arebbus.model.Install;
-import com.project.arebbus.model.Route;
-import com.project.arebbus.model.RouteStop;
-import com.project.arebbus.model.User;
-import com.project.arebbus.repositories.BusRepository;
-import com.project.arebbus.repositories.BusUpvoteRepository;
-import com.project.arebbus.repositories.InstallRepository;
-import com.project.arebbus.repositories.RouteRepository;
-import com.project.arebbus.repositories.RouteStopRepository;
+import com.project.arebbus.model.*;
+import com.project.arebbus.repositories.*;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
+import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -37,6 +26,7 @@ public class BusService {
     private final RouteStopRepository routeStopRepository;
     private final BusUpvoteRepository busUpvoteRepository;
     private final InstallRepository installRepository;
+    private final BusRatingRepository busRatingRepository;
 
     public BusResponse createBus(User user, BusCreateRequest request) {
         Route route = routeRepository.findById(request.getRouteId())
@@ -169,6 +159,7 @@ public class BusService {
                     .status(bus.getBasedOn().getStatus())
                     .upvoted(busUpvoteRepository.existsByUserIdAndBusId(user.getId(), bus.getBasedOn().getId()))
                     .installed(installRepository.existsByUserAndBus(user, bus.getBasedOn()))
+                    .rating(bus.getBasedOn().getRating())
                     .build();
         }
 
@@ -184,6 +175,7 @@ public class BusService {
                 .basedOn(basedOnResponse)
                 .upvoted(busUpvoteRepository.existsByUserIdAndBusId(user.getId(), bus.getId()))
                 .installed(installRepository.existsByUserAndBus(user, bus))
+                .rating(bus.getRating())
                 .build();
     }
 
@@ -206,5 +198,32 @@ public class BusService {
                 .authorName(route.getAuthor().getName())
                 .stops(stopResponses)
                 .build();
+    }
+
+    @Transactional
+    public String rateBus(User user, Long busId, Long rating){
+        var bus = busRepository.findById(busId).orElseThrow(() -> new IllegalArgumentException("Post not found with id: " + busId));
+
+        Optional<BusRating> busRating = busRatingRepository.findByUserIdAndBusId(user.getId(), bus.getId());
+
+        if(busRating.isEmpty()){
+            BusRating busRating1 = BusRating.builder()
+                    .user(user)
+                    .bus(bus)
+                    .busId(busId)
+                    .userId(user.getId())
+                    .rating(rating)
+                    .build();
+            busRatingRepository.save(busRating1);
+            bus.setRating(busRatingRepository.findAverageRating(busId));
+            busRepository.save(bus);
+        }
+        else{
+            BusRating busRating1 = busRating.get();
+            busRating1.setRating(rating);
+            bus.setRating(busRatingRepository.findAverageRating(busId));
+            busRepository.save(bus);
+        }
+        return "success";
     }
 }

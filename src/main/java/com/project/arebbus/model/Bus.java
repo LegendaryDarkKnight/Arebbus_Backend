@@ -42,6 +42,9 @@ public class Bus {
     @Nullable
     private String status;
 
+    @Column(name = "rating")
+    private Double rating;
+
     @ManyToOne
     @JoinColumn(name = "based_on")
     private Bus basedOn;

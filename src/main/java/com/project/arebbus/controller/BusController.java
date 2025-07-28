@@ -1,10 +1,6 @@
 package com.project.arebbus.controller;
 
-import com.project.arebbus.dto.BusCreateRequest;
-import com.project.arebbus.dto.BusInstallRequest;
-import com.project.arebbus.dto.BusInstallResponse;
-import com.project.arebbus.dto.BusResponse;
-import com.project.arebbus.dto.PagedBusResponse;
+import com.project.arebbus.dto.*;
 import com.project.arebbus.model.User;
 import com.project.arebbus.service.BusService;
 import lombok.RequiredArgsConstructor;
@@ -59,5 +55,11 @@ public class BusController {
             Authentication authentication) {
         User user = (User) authentication.getPrincipal();
         return ResponseEntity.ok(busService.getInstalledBuses(user, page, size));
+    }
+
+    @PostMapping("/rate")
+    public  ResponseEntity<RateResponse> rateBus(@RequestBody BusRatingRequest busRatingRequest, Authentication authentication){
+        User user = (User) authentication.getPrincipal();
+        return ResponseEntity.ok(RateResponse.builder().response(busService.rateBus(user,busRatingRequest.getBusId(), busRatingRequest.getRating())).build());
     }
 }

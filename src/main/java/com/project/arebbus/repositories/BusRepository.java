@@ -16,7 +16,7 @@ public interface BusRepository extends JpaRepository<Bus, Long> {
     List<Bus> findByCapacityGreaterThan(Short capacity);
 
     // Find buses installed by a specific user (many-to-many through Install entity)
-    @Query("SELECT b FROM Bus b JOIN b.installs i WHERE i.user = :user")
+    @Query(nativeQuery = true, value="SELECT b FROM Bus b JOIN b.installs i WHERE i.user = :user")
     List<Bus> findBusesInstalledByUser(@Param("user") User user);
 
     // Alternative approach using Install table directly

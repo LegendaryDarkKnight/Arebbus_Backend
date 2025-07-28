@@ -17,6 +17,7 @@ public class BusResponse {
     private Long numUpvote;
     private String status;
     private BusResponse basedOn;
+    private Double rating;
     private boolean upvoted;
     private boolean installed;
 }

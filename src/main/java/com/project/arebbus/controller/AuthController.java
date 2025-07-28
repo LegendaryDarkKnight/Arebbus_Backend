@@ -4,7 +4,6 @@ import com.project.arebbus.dto.UserLoginRequest;
 import com.project.arebbus.dto.UserRegistrationRequest;
 import com.project.arebbus.service.AuthService;
 import com.project.arebbus.service.JwtService;
-import com.project.arebbus.utils.CookieHelper;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
