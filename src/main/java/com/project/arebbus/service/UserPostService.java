@@ -16,6 +16,7 @@ import org.slf4j.Marker;
 import org.slf4j.MarkerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -98,7 +99,8 @@ public class UserPostService {
 
 
     public PagedPostResponse getAllPostsPage(User user, int page, int size) {
-        Page<Post> posts = postRepository.findAll(PageRequest.of(page, size));
+        Sort sort = Sort.by(Sort.Direction.DESC, "createdAt").and(Sort.by(Sort.Direction.DESC, "id"));
+        Page<Post> posts = postRepository.findAll(PageRequest.of(page, size, sort));
 
         LOGGER.debug("Total posts found: {}", posts.getTotalElements());
 
@@ -157,7 +159,8 @@ public class UserPostService {
 
 
     public PagedPostResponse getMyPostsPage(User user, int page, int size) {
-        Page<Post> posts = postRepository.findByAuthor(user, PageRequest.of(page, size));
+        Sort sort = Sort.by(Sort.Direction.DESC, "createdAt").and(Sort.by(Sort.Direction.DESC, "id"));
+        Page<Post> posts = postRepository.findByAuthor(user, PageRequest.of(page, size, sort));
 
         LOGGER.debug("Total posts found for user {}: {}", user.getId(), posts.getTotalElements());
 
@@ -182,6 +185,40 @@ public class UserPostService {
                 .totalPages(posts.getTotalPages())
                 .totalElements(posts.getTotalElements())
                 .build();
+    }
+
+    public PagedPostResponse getPostsByTags(User user, List<String> tagNames, int page, int size) {
+        Sort sort = Sort.by(Sort.Direction.DESC, "createdAt").and(Sort.by(Sort.Direction.DESC, "id"));
+        Page<Post> posts = postRepository.findByTagNames(tagNames, PageRequest.of(page, size, sort));
+
+        List<PostSummaryResponse> postSummaries = posts.getContent().stream().map(
+                post -> PostSummaryResponse.builder()
+                        .postId(post.getId())
+                        .authorName(post.getAuthor().getName())
+                        .content(post.getContent())
+                        .numUpvote(post.getNumUpvote())
+                        .createdAt(post.getCreatedAt())
+                        .tags(tagRepository.findTagsByPostId(post.getId()).stream()
+                                .map(Tag::getName)
+                                .toList())
+                        .upvoted(upvoteRepository.existsByUserIdAndPostId(user.getId(), post.getId()))
+                        .build()
+        ).toList();
+
+        return PagedPostResponse.builder()
+                .posts(postSummaries)
+                .page(posts.getNumber())
+                .size(posts.getSize())
+                .totalPages(posts.getTotalPages())
+                .totalElements(posts.getTotalElements())
+                .build();
+    }
+
+    public List<String> getAllTags() {
+        return tagRepository.findAll().stream()
+                .map(Tag::getName)
+                .sorted()
+                .toList();
     }
 }
 

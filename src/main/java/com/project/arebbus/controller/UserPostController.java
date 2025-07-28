@@ -8,6 +8,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.core.Authentication;
 
+import java.util.List;
+
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/post")
@@ -56,6 +58,21 @@ public class UserPostController {
     public ResponseEntity<PostResponse> getPostById(@RequestParam Long postId, Authentication authentication) {
         User user = (User) authentication.getPrincipal();
         return ResponseEntity.ok(userPostService.getPostById(user, postId));
+    }
+
+    @GetMapping("/by-tags")
+    public ResponseEntity<PagedPostResponse> getPostsByTags(
+            @RequestParam List<String> tags,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            Authentication authentication) {
+        User user = (User) authentication.getPrincipal();
+        return ResponseEntity.ok(userPostService.getPostsByTags(user, tags, page, size));
+    }
+
+    @GetMapping("/tags")
+    public ResponseEntity<List<String>> getAllTags() {
+        return ResponseEntity.ok(userPostService.getAllTags());
     }
 
 }

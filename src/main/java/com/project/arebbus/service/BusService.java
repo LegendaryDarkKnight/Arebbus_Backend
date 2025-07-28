@@ -24,6 +24,7 @@ import com.project.arebbus.repositories.RouteStopRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -64,7 +65,8 @@ public class BusService {
     }
 
     public PagedBusResponse getAllBuses(User user, int page, int size) {
-        Page<Bus> buses = busRepository.findAll(PageRequest.of(page, size));
+        Sort sort = Sort.by(Sort.Direction.DESC, "id");
+        Page<Bus> buses = busRepository.findAll(PageRequest.of(page, size, sort));
 
         List<BusResponse> busResponses = buses.getContent().stream()
                 .map(bus -> buildBusResponse(bus, user))
@@ -129,28 +131,19 @@ public class BusService {
     }
 
     public PagedBusResponse getInstalledBuses(User user, int page, int size) {
-        List<Install> installs = installRepository.findByUser(user);
-        
-        List<Bus> installedBuses = installs.stream()
-                .map(Install::getBus)
-                .toList();
+        Sort sort = Sort.by(Sort.Direction.DESC, "id");
+        Page<Bus> buses = busRepository.findBusesInstalledByUser(user, PageRequest.of(page, size, sort));
 
-        int start = page * size;
-        int end = Math.min(start + size, installedBuses.size());
-        List<Bus> pagedBuses = installedBuses.subList(start, end);
-
-        List<BusResponse> busResponses = pagedBuses.stream()
+        List<BusResponse> busResponses = buses.getContent().stream()
                 .map(bus -> buildBusResponse(bus, user))
                 .toList();
 
-        int totalPages = (int) Math.ceil((double) installedBuses.size() / size);
-
         return PagedBusResponse.builder()
                 .buses(busResponses)
-                .page(page)
-                .size(size)
-                .totalPages(totalPages)
-                .totalElements(installedBuses.size())
+                .page(buses.getNumber())
+                .size(buses.getSize())
+                .totalPages(buses.getTotalPages())
+                .totalElements(buses.getTotalElements())
                 .build();
     }
 

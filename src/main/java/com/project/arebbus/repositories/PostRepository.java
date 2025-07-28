@@ -35,4 +35,8 @@ public interface PostRepository extends JpaRepository<Post, Long> {
 
     Page<Post> findAll(Pageable pageable);
     Page<Post> findByAuthor(User author, Pageable pageable);
+
+    // Find posts by tag names with pagination and sorting
+    @Query("SELECT DISTINCT p FROM Post p JOIN p.postTags pt JOIN pt.tag t WHERE t.name IN :tagNames")
+    Page<Post> findByTagNames(@Param("tagNames") List<String> tagNames, Pageable pageable);
 }
