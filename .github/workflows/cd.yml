@@ -59,32 +59,48 @@ jobs:
           
           case "$1" in
             cleanup_containers)
-              log "Stopping and removing all existing containers..."
+              log "Checking for existing containers to cleanup..."
           
-              # Stop and remove arebbus backend container if exists
-              if docker ps -q -f name=arebbus-backend; then
-                info "Stopping arebbus-backend container..."
-                docker stop arebbus-backend
-              fi
-              if docker ps -aq -f name=arebbus-backend; then
-                info "Removing arebbus-backend container..."
-                docker rm arebbus-backend
-              fi
+              # List of possible container names to clean up
+              CONTAINER_NAMES="arebbus arebbus-backend arebbus_postgres"
+              CONTAINERS_FOUND=false
           
-              # Stop and remove postgres container if exists
-              if docker ps -q -f name=arebbus_postgres; then
-                info "Stopping arebbus_postgres container..."
-                docker stop arebbus_postgres
-              fi
-              if docker ps -aq -f name=arebbus_postgres; then
-                info "Removing arebbus_postgres container..."
-                docker rm arebbus_postgres
-              fi
+              for container_name in $CONTAINER_NAMES; do
+                # Check if container is running
+                RUNNING_CONTAINER=$(docker ps -q -f name=^${container_name}$)
+                if [ ! -z "$RUNNING_CONTAINER" ]; then
+                  info "Stopping running ${container_name} container..."
+                  docker stop $container_name
+                  success "${container_name} container stopped"
+                  CONTAINERS_FOUND=true
+                fi
+          
+                # Check if container exists (including stopped ones)
+                EXISTING_CONTAINER=$(docker ps -aq -f name=^${container_name}$)
+                if [ ! -z "$EXISTING_CONTAINER" ]; then
+                  info "Removing ${container_name} container..."
+                  docker rm $container_name
+                  success "${container_name} container removed"
+                  CONTAINERS_FOUND=true
+                fi
+              done
           
               # Stop and remove docker-compose containers if they exist
               if [ -f docker-compose.yml ]; then
-                info "Stopping docker-compose services..."
-                docker-compose down || true
+                info "Found docker-compose.yml, stopping services..."
+                if docker-compose ps -q 2>/dev/null | grep -q .; then
+                  docker-compose down --remove-orphans
+                  success "Docker-compose services stopped and removed"
+                  CONTAINERS_FOUND=true
+                else
+                  info "No running docker-compose services found"
+                fi
+              else
+                info "No docker-compose.yml found"
+              fi
+          
+              if [ "$CONTAINERS_FOUND" = "false" ]; then
+                info "No existing containers found to cleanup"
               fi
           
               success "Container cleanup completed"
@@ -97,14 +113,26 @@ jobs:
               docker pull $DOCKER_USERNAME/arebbus-backend:latest
               success "Latest image pulled successfully"
           
-              # Remove old backend images (keep only latest)
-              log "Cleaning up old backend images..."
-              docker images $DOCKER_USERNAME/arebbus-backend --format "table {{.Repository}}\t{{.Tag}}\t{{.ID}}" | grep -v latest | awk 'NR>1 {print $3}' | xargs -r docker rmi || true
+              # Check for old backend images to cleanup
+              OLD_IMAGES=$(docker images $DOCKER_USERNAME/arebbus-backend --format "{{.ID}}" | grep -v $(docker images $DOCKER_USERNAME/arebbus-backend:latest --format "{{.ID}}") || true)
+          
+              if [ ! -z "$OLD_IMAGES" ]; then
+                log "Removing old backend images..."
+                echo "$OLD_IMAGES" | xargs -r docker rmi || warning "Some old images could not be removed"
+                success "Old images cleanup completed"
+              else
+                info "No old backend images found to cleanup"
+              fi
           
               # Clean up dangling images
-              docker image prune -f || true
-          
-              success "Image cleanup completed"
+              DANGLING_IMAGES=$(docker images -f "dangling=true" -q)
+              if [ ! -z "$DANGLING_IMAGES" ]; then
+                log "Removing dangling images..."
+                docker image prune -f
+                success "Dangling images cleaned up"
+              else
+                info "No dangling images found"
+              fi
               ;;
           
             setup_docker_compose)
@@ -125,7 +153,7 @@ jobs:
                 - postgres_data:/var/lib/postgresql/data
                 - ./init-sql:/docker-entrypoint-initdb.d
               ports:
-                - "5432:5432"
+                - "5433:5432"
               healthcheck:
                 test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
                 interval: 10s
@@ -236,30 +264,58 @@ jobs:
           
             check_services_status)
               log "Checking services status..."
-              docker-compose ps
           
-              # Check if both services are running
-              if ! docker ps -q -f name=arebbus_postgres | grep -q .; then
-                error "PostgreSQL container is not running"
+              if [ -f docker-compose.yml ]; then
+                docker-compose ps
+          
+                # Check if postgres service is running
+                POSTGRES_CONTAINER=$(docker ps -q -f name=arebbus_postgres)
+                if [ ! -z "$POSTGRES_CONTAINER" ]; then
+                  success "PostgreSQL container is running"
+                else
+                  error "PostgreSQL container is not running"
+                  exit 1
+                fi
+          
+                # Check if backend service is running
+                BACKEND_CONTAINER=$(docker ps -q -f name=arebbus-backend)
+                if [ ! -z "$BACKEND_CONTAINER" ]; then
+                  success "Backend container is running"
+                else
+                  error "Backend container is not running"
+                  exit 1
+                fi
+          
+                success "All services are running properly"
+              else
+                error "docker-compose.yml not found"
                 exit 1
               fi
-          
-              if ! docker ps -q -f name=arebbus-backend | grep -q .; then
-                error "Backend container is not running"
-                exit 1
-              fi
-          
-              success "All services are running"
               ;;
           
             show_logs)
               log "Showing recent logs from services..."
               echo ""
-              info "PostgreSQL logs (last 10 lines):"
-              docker logs --tail 10 arebbus_postgres
+          
+              # Check if postgres container exists and show logs
+              POSTGRES_CONTAINER=$(docker ps -q -f name=arebbus_postgres)
+              if [ ! -z "$POSTGRES_CONTAINER" ]; then
+                info "PostgreSQL logs (last 10 lines):"
+                docker logs --tail 10 arebbus_postgres
+              else
+                warning "PostgreSQL container not found"
+              fi
+          
               echo ""
-              info "Backend logs (last 20 lines):"
-              docker logs --tail 20 arebbus-backend
+          
+              # Check if backend container exists and show logs
+              BACKEND_CONTAINER=$(docker ps -q -f name=arebbus-backend)
+              if [ ! -z "$BACKEND_CONTAINER" ]; then
+                info "Backend logs (last 20 lines):"
+                docker logs --tail 20 arebbus-backend
+              else
+                warning "Backend container not found"
+              fi
               ;;
           
             test_health_endpoints)
@@ -300,8 +356,22 @@ jobs:
           
             cleanup_deployment_files)
               log "Cleaning up deployment files..."
-              rm -f docker-compose.yml .env
-              success "Deployment files cleaned up"
+              FILES_TO_REMOVE="docker-compose.yml .env"
+              FILES_REMOVED=false
+          
+              for file in $FILES_TO_REMOVE; do
+                if [ -f "$file" ]; then
+                  rm -f "$file"
+                  info "Removed $file"
+                  FILES_REMOVED=true
+                fi
+              done
+          
+              if [ "$FILES_REMOVED" = "false" ]; then
+                info "No deployment files found to cleanup"
+              else
+                success "Deployment files cleaned up"
+              fi
               ;;
           
             *)
