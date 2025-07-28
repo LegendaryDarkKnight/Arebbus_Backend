@@ -58,141 +58,250 @@ jobs:
           }
           
           case "$1" in
-            check_container)
-              log "Checking for existing arebbus container..."
+            cleanup_containers)
+              log "Stopping and removing all existing containers..."
           
-              if docker ps -q -f name=arebbus; then
-                info "Found running arebbus container"
-                docker ps -f name=arebbus --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
-                echo "CONTAINER_RUNNING=true" > /tmp/container_status
-              else
-                info "No running arebbus container found"
-                echo "CONTAINER_RUNNING=false" > /tmp/container_status
+              # Stop and remove arebbus backend container if exists
+              if docker ps -q -f name=arebbus-backend; then
+                info "Stopping arebbus-backend container..."
+                docker stop arebbus-backend
+              fi
+              if docker ps -aq -f name=arebbus-backend; then
+                info "Removing arebbus-backend container..."
+                docker rm arebbus-backend
               fi
           
-              if docker ps -aq -f name=arebbus; then
-                info "Found existing arebbus container (may be stopped)"
-                echo "CONTAINER_EXISTS=true" >> /tmp/container_status
-              else
-                info "No existing arebbus container found"
-                echo "CONTAINER_EXISTS=false" >> /tmp/container_status
+              # Stop and remove postgres container if exists
+              if docker ps -q -f name=arebbus_postgres; then
+                info "Stopping arebbus_postgres container..."
+                docker stop arebbus_postgres
               fi
+              if docker ps -aq -f name=arebbus_postgres; then
+                info "Removing arebbus_postgres container..."
+                docker rm arebbus_postgres
+              fi
+          
+              # Stop and remove docker-compose containers if they exist
+              if [ -f docker-compose.yml ]; then
+                info "Stopping docker-compose services..."
+                docker-compose down || true
+              fi
+          
+              success "Container cleanup completed"
               ;;
           
-            stop_container)
-              source /tmp/container_status
-              if [ "$CONTAINER_RUNNING" = "true" ]; then
-                log "Stopping running arebbus container..."
-                docker stop arebbus
-                success "Container stopped successfully"
-              else
-                info "No running container to stop"
-              fi
-              ;;
+            pull_and_cleanup_images)
+              log "Pulling latest backend image and cleaning up old images..."
           
-            remove_container)
-              source /tmp/container_status
-              if [ "$CONTAINER_EXISTS" = "true" ]; then
-                log "Removing existing arebbus container..."
-                docker rm arebbus
-                success "Container removed successfully"
-              else
-                info "No existing container to remove"
-              fi
-              ;;
-          
-            pull_image)
-              log "Pulling latest image from Docker Hub..."
+              # Pull the latest image
               docker pull $DOCKER_USERNAME/arebbus-backend:latest
-              success "Image pulled successfully"
+              success "Latest image pulled successfully"
+          
+              # Remove old backend images (keep only latest)
+              log "Cleaning up old backend images..."
+              docker images $DOCKER_USERNAME/arebbus-backend --format "table {{.Repository}}\t{{.Tag}}\t{{.ID}}" | grep -v latest | awk 'NR>1 {print $3}' | xargs -r docker rmi || true
+          
+              # Clean up dangling images
+              docker image prune -f || true
+          
+              success "Image cleanup completed"
               ;;
           
-            start_container)
-              log "Starting new arebbus container..."
-              docker run -d \
-                --name arebbus \
-                -p 8080:6996 \
-                --restart unless-stopped \
-                --health-cmd="curl -f http://localhost:6996/health || exit 1" \
-                --health-interval=30s \
-                --health-timeout=10s \
-                --health-retries=3 \
-                --health-start-period=40s \
-                -e POSTGRES_URL="$POSTGRES_URL" \
-                -e POSTGRES_USER="$POSTGRES_USER" \
-                -e POSTGRES_PASS="$POSTGRES_PASS" \
-                -e SECRET_KEY="$SECRET_KEY" \
-                -e FRONTEND_URL="$FRONTEND_URL" \
-                -e JAVA_OPTS="-Xmx1g -Djava.security.egd=file:/dev/./urandom" \
-                $DOCKER_USERNAME/arebbus-backend:latest
-              success "Container started successfully"
+            setup_docker_compose)
+              log "Setting up docker-compose.yml file..."
+          
+              cat > docker-compose.yml << 'COMPOSE_EOF'
+          version: '3.8'
+          
+          services:
+            postgres:
+              image: postgres:17-alpine
+              container_name: arebbus_postgres
+              environment:
+                POSTGRES_USER: ${POSTGRES_USER}
+                POSTGRES_PASSWORD: ${POSTGRES_PASS}
+                POSTGRES_DB: Arebbus
+              volumes:
+                - postgres_data:/var/lib/postgresql/data
+                - ./init-sql:/docker-entrypoint-initdb.d
+              ports:
+                - "5432:5432"
+              healthcheck:
+                test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+                interval: 10s
+                timeout: 5s
+                retries: 5
+                start_period: 30s
+              restart: unless-stopped
+              networks:
+                - arebbus-network
+          
+            arebbus-backend:
+              image: ${DOCKER_USERNAME}/arebbus-backend:latest
+              container_name: arebbus-backend
+              depends_on:
+                postgres:
+                  condition: service_healthy
+              environment:
+                POSTGRES_URL: ${POSTGRES_URL}
+                POSTGRES_USER: ${POSTGRES_USER}
+                POSTGRES_PASS: ${POSTGRES_PASS}
+                SECRET_KEY: ${SECRET_KEY}
+                FRONTEND_URL: ${FRONTEND_URL}
+                JAVA_OPTS: "-Xmx1g -Djava.security.egd=file:/dev/./urandom"
+              ports:
+                - "8080:6996"
+              volumes:
+                - arebbus_data:/app/data
+              healthcheck:
+                test: ["CMD", "curl", "-f", "http://localhost:6996/health"]
+                interval: 30s
+                timeout: 10s
+                retries: 3
+                start_period: 60s
+              restart: unless-stopped
+              networks:
+                - arebbus-network
+          
+          volumes:
+            postgres_data:
+              driver: local
+            arebbus_data:
+              driver: local
+          
+          networks:
+            arebbus-network:
+              driver: bridge
+          COMPOSE_EOF
+          
+              success "docker-compose.yml created successfully"
               ;;
           
-            wait_startup)
-              log "Waiting for container to initialize..."
-              sleep 30
-              success "Wait period completed"
+            create_env_file)
+              log "Creating .env file for docker-compose..."
+          
+              cat > .env << ENV_EOF
+          DOCKER_USERNAME=$DOCKER_USERNAME
+          POSTGRES_URL=$POSTGRES_URL
+          POSTGRES_USER=$POSTGRES_USER
+          POSTGRES_PASS=$POSTGRES_PASS
+          SECRET_KEY=$SECRET_KEY
+          FRONTEND_URL=$FRONTEND_URL
+          ENV_EOF
+          
+              success ".env file created successfully"
               ;;
           
-            check_status)
-              log "Checking container status..."
-              docker ps -f name=arebbus --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
-          
-              if docker ps -q -f name=arebbus; then
-                success "Container is running"
-              else
-                error "Container is not running"
-                exit 1
-              fi
+            start_services)
+              log "Starting services with docker-compose..."
+              docker-compose up -d
+              success "Services started successfully"
               ;;
           
-            show_logs)
-              log "Container logs (last 20 lines):"
-              docker logs --tail 20 arebbus
-              ;;
+            wait_for_postgres)
+              log "Waiting for PostgreSQL to be ready..."
+              for i in {1..30}; do
+                info "PostgreSQL health check attempt $i of 30..."
           
-            wait_app_startup)
-              log "Waiting for application to fully start..."
-              sleep 60
-              success "Application startup wait completed"
-              ;;
-          
-            verify_running)
-              log "Verifying container is still running..."
-              if docker ps -q -f name=arebbus; then
-                success "Container is running!"
-                docker ps -f name=arebbus --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
-              else
-                error "Container is not running!"
-                echo "Container logs:"
-                docker logs arebbus
-                exit 1
-              fi
-              ;;
-          
-            test_health)
-              log "Testing health endpoint..."
-              for i in {1..5}; do
-                info "Health check attempt $i of 5..."
-          
-                if curl -f "http://localhost:8080/health" 2>/dev/null; then
-                  success "Health endpoint responding!"
-                  exit 0
+                if docker exec arebbus_postgres pg_isready -U $POSTGRES_USER > /dev/null 2>&1; then
+                  success "PostgreSQL is ready!"
+                  return 0
                 else
-                  warning "Health endpoint not responding, waiting 10s..."
+                  warning "PostgreSQL not ready, waiting 10s..."
                   sleep 10
                 fi
               done
-              error "Health endpoint not responding after 5 attempts"
+              error "PostgreSQL failed to become ready after 5 minutes"
               exit 1
+              ;;
+          
+            wait_for_backend)
+              log "Waiting for backend application to be ready..."
+              sleep 30  # Initial wait for startup
+          
+              for i in {1..20}; do
+                info "Backend health check attempt $i of 20..."
+          
+                if curl -f "http://localhost:8080/health" 2>/dev/null; then
+                  success "Backend application is ready!"
+                  return 0
+                else
+                  warning "Backend not ready, waiting 15s..."
+                  sleep 15
+                fi
+              done
+              error "Backend application failed to become ready after 5 minutes"
+              exit 1
+              ;;
+          
+            check_services_status)
+              log "Checking services status..."
+              docker-compose ps
+          
+              # Check if both services are running
+              if ! docker ps -q -f name=arebbus_postgres | grep -q .; then
+                error "PostgreSQL container is not running"
+                exit 1
+              fi
+          
+              if ! docker ps -q -f name=arebbus-backend | grep -q .; then
+                error "Backend container is not running"
+                exit 1
+              fi
+          
+              success "All services are running"
+              ;;
+          
+            show_logs)
+              log "Showing recent logs from services..."
+              echo ""
+              info "PostgreSQL logs (last 10 lines):"
+              docker logs --tail 10 arebbus_postgres
+              echo ""
+              info "Backend logs (last 20 lines):"
+              docker logs --tail 20 arebbus-backend
+              ;;
+          
+            test_health_endpoints)
+              log "Testing health endpoints..."
+          
+              # Test PostgreSQL connection
+              info "Testing PostgreSQL connection..."
+              if docker exec arebbus_postgres pg_isready -U $POSTGRES_USER > /dev/null 2>&1; then
+                success "PostgreSQL connection test passed"
+              else
+                error "PostgreSQL connection test failed"
+                exit 1
+              fi
+          
+              # Test backend health endpoint
+              info "Testing backend health endpoint..."
+              if curl -f "http://localhost:8080/health" 2>/dev/null; then
+                success "Backend health endpoint test passed"
+              else
+                error "Backend health endpoint test failed"
+                exit 1
+              fi
               ;;
           
             final_status)
               success "Deployment completed successfully!"
               info "Application is accessible at: http://$VM_HOST:8080"
               echo ""
-              log "Final container status:"
-              docker ps -f name=arebbus --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+              log "Final services status:"
+              docker-compose ps
+              echo ""
+              log "Network information:"
+              docker network ls | grep arebbus
+              echo ""
+              log "Volume information:"
+              docker volume ls | grep -E "(postgres_data|arebbus_data)"
+              ;;
+          
+            cleanup_deployment_files)
+              log "Cleaning up deployment files..."
+              rm -f docker-compose.yml .env
+              success "Deployment files cleaned up"
               ;;
           
             *)
@@ -208,27 +317,22 @@ jobs:
         run: |
           scp -i ~/.ssh/id_rsa deploy_script.sh ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }}:/tmp/
 
-      - name: Check for existing container
+      - name: Cleanup existing containers
         run: |
           ssh -i ~/.ssh/id_rsa ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} \
-            "/tmp/deploy_script.sh check_container"
+            "/tmp/deploy_script.sh cleanup_containers"
 
-      - name: Stop existing container
+      - name: Pull latest image and cleanup old images
         run: |
           ssh -i ~/.ssh/id_rsa ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} \
-            "/tmp/deploy_script.sh stop_container"
+            "DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }} /tmp/deploy_script.sh pull_and_cleanup_images"
 
-      - name: Remove existing container
+      - name: Setup docker-compose configuration
         run: |
           ssh -i ~/.ssh/id_rsa ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} \
-            "DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }} /tmp/deploy_script.sh remove_container"
+            "/tmp/deploy_script.sh setup_docker_compose"
 
-      - name: Pull latest image
-        run: |
-          ssh -i ~/.ssh/id_rsa ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} \
-            "DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }} /tmp/deploy_script.sh pull_image"
-
-      - name: Start new container
+      - name: Create environment file
         run: |
           ssh -i ~/.ssh/id_rsa ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} \
             "DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }} \
@@ -237,39 +341,39 @@ jobs:
              POSTGRES_PASS=${{ secrets.POSTGRES_PASS }} \
              SECRET_KEY=${{ secrets.SECRET_KEY }} \
              FRONTEND_URL=${{ secrets.FRONTEND_URL }} \
-             /tmp/deploy_script.sh start_container"
+             /tmp/deploy_script.sh create_env_file"
 
-      - name: Wait for container startup
+      - name: Start services with docker-compose
         run: |
           ssh -i ~/.ssh/id_rsa ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} \
-            "/tmp/deploy_script.sh wait_startup"
+            "/tmp/deploy_script.sh start_services"
 
-      - name: Check container status
+      - name: Wait for PostgreSQL to be ready
         run: |
           ssh -i ~/.ssh/id_rsa ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} \
-            "/tmp/deploy_script.sh check_status"
+            "POSTGRES_USER=${{ secrets.POSTGRES_USER }} /tmp/deploy_script.sh wait_for_postgres"
 
-      - name: Show container logs
+      - name: Wait for backend application
+        run: |
+          ssh -i ~/.ssh/id_rsa ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} \
+            "/tmp/deploy_script.sh wait_for_backend"
+
+      - name: Check services status
+        run: |
+          ssh -i ~/.ssh/id_rsa ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} \
+            "/tmp/deploy_script.sh check_services_status"
+
+      - name: Show service logs
         run: |
           ssh -i ~/.ssh/id_rsa ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} \
             "/tmp/deploy_script.sh show_logs"
 
-      - name: Wait for application startup
+      - name: Test health endpoints
         run: |
           ssh -i ~/.ssh/id_rsa ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} \
-            "/tmp/deploy_script.sh wait_app_startup"
+            "POSTGRES_USER=${{ secrets.POSTGRES_USER }} /tmp/deploy_script.sh test_health_endpoints"
 
-      - name: Verify container is running
-        run: |
-          ssh -i ~/.ssh/id_rsa ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} \
-            "/tmp/deploy_script.sh verify_running"
-
-      - name: Test health endpoint
-        run: |
-          ssh -i ~/.ssh/id_rsa ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} \
-            "/tmp/deploy_script.sh test_health"
-
-      - name: Show final status
+      - name: Show final deployment status
         run: |
           ssh -i ~/.ssh/id_rsa ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} \
             "VM_HOST=${{ secrets.VM_HOST }} /tmp/deploy_script.sh final_status"
@@ -277,8 +381,8 @@ jobs:
       - name: Cleanup
         if: always()
         run: |
-          # Cleanup remote script
+          # Cleanup remote files
           ssh -i ~/.ssh/id_rsa ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} \
-            "rm -f /tmp/deploy_script.sh /tmp/container_status" || true
+            "/tmp/deploy_script.sh cleanup_deployment_files && rm -f /tmp/deploy_script.sh" || true
           # Cleanup SSH key
           rm -f ~/.ssh/id_rsa
