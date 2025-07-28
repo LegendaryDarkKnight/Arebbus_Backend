@@ -217,7 +217,7 @@ class BusServiceTests {
         List<Bus> buses = Arrays.asList(bus1, bus2);
         Page<Bus> busPage = new PageImpl<>(buses, PageRequest.of(0, 10), 2);
 
-        when(busRepository.findAll(eq(PageRequest.of(0, 10)))).thenReturn(busPage);
+        when(busRepository.findAll(any(PageRequest.class))).thenReturn(busPage);
         when(routeStopRepository.findByRouteOrderByStopIndex(route)).thenReturn(Arrays.asList());
         when(busUpvoteRepository.existsByUserIdAndBusId(1L, 1L)).thenReturn(false);
         when(busUpvoteRepository.existsByUserIdAndBusId(1L, 2L)).thenReturn(false);
@@ -405,7 +405,10 @@ class BusServiceTests {
                 .bus(bus2)
                 .build();
 
-        when(installRepository.findByUser(user)).thenReturn(Arrays.asList(install1, install2));
+        List<Bus> buses = Arrays.asList(bus1, bus2);
+        Page<Bus> busPage = new PageImpl<>(buses, PageRequest.of(0, 10), 2);
+        
+        when(busRepository.findBusesInstalledByUser(eq(user), any(PageRequest.class))).thenReturn(busPage);
         when(routeStopRepository.findByRouteOrderByStopIndex(route)).thenReturn(Arrays.asList());
         when(busUpvoteRepository.existsByUserIdAndBusId(1L, 1L)).thenReturn(false);
         when(busUpvoteRepository.existsByUserIdAndBusId(1L, 2L)).thenReturn(false);
@@ -466,11 +469,10 @@ class BusServiceTests {
                 .numUpvote(0L)
                 .build();
 
-        Install install1 = Install.builder().userId(1L).busId(1L).user(user).bus(bus1).build();
-        Install install2 = Install.builder().userId(1L).busId(2L).user(user).bus(bus2).build();
-        Install install3 = Install.builder().userId(1L).busId(3L).user(user).bus(bus3).build();
-
-        when(installRepository.findByUser(user)).thenReturn(Arrays.asList(install1, install2, install3));
+        List<Bus> buses = Arrays.asList(bus1, bus2);
+        Page<Bus> busPage = new PageImpl<>(buses, PageRequest.of(0, 2), 3);
+        
+        when(busRepository.findBusesInstalledByUser(eq(user), any(PageRequest.class))).thenReturn(busPage);
         when(routeStopRepository.findByRouteOrderByStopIndex(route)).thenReturn(Arrays.asList());
         when(busUpvoteRepository.existsByUserIdAndBusId(1L, 1L)).thenReturn(false);
         when(busUpvoteRepository.existsByUserIdAndBusId(1L, 2L)).thenReturn(false);

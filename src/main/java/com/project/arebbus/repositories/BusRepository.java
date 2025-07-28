@@ -4,6 +4,8 @@ package com.project.arebbus.repositories;
 import com.project.arebbus.model.Bus;
 import com.project.arebbus.model.Route;
 import com.project.arebbus.model.User;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -18,6 +20,10 @@ public interface BusRepository extends JpaRepository<Bus, Long> {
     // Find buses installed by a specific user (many-to-many through Install entity)
     @Query(nativeQuery = true, value="SELECT b FROM Bus b JOIN b.installs i WHERE i.user = :user")
     List<Bus> findBusesInstalledByUser(@Param("user") User user);
+
+    // Find buses installed by a specific user with pagination and sorting
+    @Query("SELECT b FROM Bus b JOIN b.installs i WHERE i.user = :user")
+    Page<Bus> findBusesInstalledByUser(@Param("user") User user, Pageable pageable);
 
     // Alternative approach using Install table directly
     @Query("SELECT b FROM Bus b WHERE b.id IN (SELECT i.busId FROM Install i WHERE i.userId = :userId)")

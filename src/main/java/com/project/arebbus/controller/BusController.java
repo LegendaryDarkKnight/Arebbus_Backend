@@ -56,10 +56,4 @@ public class BusController {
         User user = (User) authentication.getPrincipal();
         return ResponseEntity.ok(busService.getInstalledBuses(user, page, size));
     }
-
-    @PostMapping("/rate")
-    public  ResponseEntity<RateResponse> rateBus(@RequestBody BusRatingRequest busRatingRequest, Authentication authentication){
-        User user = (User) authentication.getPrincipal();
-        return ResponseEntity.ok(RateResponse.builder().response(busService.rateBus(user,busRatingRequest.getBusId(), busRatingRequest.getRating())).build());
-    }
 }
