@@ -21,14 +21,29 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+/**
+ * Service class for route business logic operations.
+ * Handles route creation, management, and stop associations.
+ */
 @Service
 @RequiredArgsConstructor
 public class RouteService {
 
+    /** Repository for route data access */
     private final RouteRepository routeRepository;
+    /** Repository for route-stop relationship data access */
     private final RouteStopRepository routeStopRepository;
+    /** Repository for stop data access */
     private final StopRepository stopRepository;
 
+    /**
+     * Creates a new route with associated stops.
+     * 
+     * @param user The user creating the route
+     * @param request The route creation request containing name and stop IDs
+     * @return RouteResponse containing the created route details
+     * @throws StopNotFoundException if any of the specified stops don't exist
+     */
     @Transactional
     public RouteResponse createRoute(User user, RouteCreateRequest request) {
         Route route = Route.builder()
@@ -78,6 +93,13 @@ public class RouteService {
         return stopResponses;
     }
 
+    /**
+     * Retrieves a  by its ID.
+     * 
+     * @param id The ID of the  to retrieve
+     * @param user The user requesting the 
+     * @return RouteResponse containing  details
+     */
     public RouteResponse getRouteById(Long routeId) {
         Route route = routeRepository.findById(routeId)
                 .orElseThrow(() -> new RouteNotFoundException(routeId));
@@ -102,6 +124,14 @@ public class RouteService {
                 .build();
     }
 
+    /**
+     * Retrieves all  with pagination.
+     * 
+     * @param user The user requesting 
+     * @param page The page number
+     * @param size The page size
+     * @return PagedRouteResponse containing  and pagination info
+     */
     public PagedRouteResponse getAllRoutes(int page, int size) {
         Page<Route> routes = routeRepository.findAll(PageRequest.of(page, size));
 

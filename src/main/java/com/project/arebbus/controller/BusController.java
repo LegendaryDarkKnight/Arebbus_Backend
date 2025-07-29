@@ -8,11 +8,16 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+/**
+ * REST controller for handling bus-related operations.
+ * Provides endpoints for creating, retrieving, installing, and managing buses.
+ */
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/bus")
 public class BusController {
 
+    /** Service for bus business logic operations */
     private final BusService busService;
 
     @PostMapping("/create")

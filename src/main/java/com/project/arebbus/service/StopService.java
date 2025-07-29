@@ -18,8 +18,16 @@ import java.util.List;
 @RequiredArgsConstructor
 public class StopService {
 
+    /** Repository for  data access */
     private final StopRepository stopRepository;
 
+    /**
+     * Creates a new .
+     * 
+     * @param user The user creating the 
+     * @param request The creation request
+     * @return StopResponse containing the created 
+     */
     public StopResponse createStop(User user, StopCreateRequest request) {
         Stop stop = Stop.builder()
                 .name(request.getName())
@@ -39,6 +47,13 @@ public class StopService {
                 .build();
     }
 
+    /**
+     * Retrieves a  by its ID.
+     * 
+     * @param id The ID of the  to retrieve
+     * @param user The user requesting the 
+     * @return StopResponse containing  details
+     */
     public StopResponse getStopById(Long stopId) {
         Stop stop = stopRepository.findById(stopId)
                 .orElseThrow(() -> new StopNotFoundException(stopId));
@@ -52,6 +67,14 @@ public class StopService {
                 .build();
     }
 
+    /**
+     * Retrieves all  with pagination.
+     * 
+     * @param user The user requesting 
+     * @param page The page number
+     * @param size The page size
+     * @return PagedStopResponse containing  and pagination info
+     */
     public PagedStopResponse getAllStops(int page, int size) {
         Page<Stop> stops = stopRepository.findAll(PageRequest.of(page, size));
 

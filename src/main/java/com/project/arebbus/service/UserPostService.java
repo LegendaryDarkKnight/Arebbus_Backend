@@ -26,16 +26,29 @@ import java.util.List;
 @RequiredArgsConstructor
 public class UserPostService {
 
+    /** Repository for  data access */
     private final PostRepository postRepository;
+    /** Repository for  data access */
     private final TagRepository tagRepository;
+    /** Repository for  data access */
     private final PostTagRepository postTagRepository;
+    /** Repository for  data access */
     private final CommentRepository commentRepository;
+    /** Repository for  data access */
     private final UpvoteRepository upvoteRepository;
+    /** Repository for  data access */
     private final CommentUpvoteRepository commentUpvoteRepository;
 
     private static final Logger LOGGER = LoggerFactory.getLogger(UserPostService.class);
 
 
+    /**
+     * Creates a new .
+     * 
+     * @param user The user creating the 
+     * @param request The creation request
+     * @return UserPostCreateResponse containing the created 
+     */
     public UserPostCreateResponse createPost(User user, UserPostCreateRequest request) {
         String content = request.getContent();
         List<String> tagNames = request.getTags();
@@ -79,6 +92,13 @@ public class UserPostService {
     }
 
 
+    /**
+     * Deletes a .
+     * 
+     * @param user The user deleting the 
+     * @param request The deletion request
+     * @return UserPostDeleteResponse containing deletion status
+     */
     public UserPostDeleteResponse deletePost(User user, UserPostDeleteRequest request) {
         Long postId = request.getPostId();
         Post post = postRepository.findById(postId)
@@ -98,6 +118,14 @@ public class UserPostService {
     }
 
 
+    /**
+     * Retrieves all  with pagination.
+     * 
+     * @param user The user requesting 
+     * @param page The page number
+     * @param size The page size
+     * @return PagedPostResponse containing  and pagination info
+     */
     public PagedPostResponse getAllPostsPage(User user, int page, int size) {
         Sort sort = Sort.by(Sort.Direction.DESC, "createdAt").and(Sort.by(Sort.Direction.DESC, "id"));
         Page<Post> posts = postRepository.findAll(PageRequest.of(page, size, sort));
@@ -129,6 +157,13 @@ public class UserPostService {
                 .build();
     }
 
+    /**
+     * Retrieves a  by its ID.
+     * 
+     * @param id The ID of the  to retrieve
+     * @param user The user requesting the 
+     * @return PostResponse containing  details
+     */
     public PostResponse getPostById(User user, Long postId) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new PostNotFoundException(postId));

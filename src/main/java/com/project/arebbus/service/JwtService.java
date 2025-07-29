@@ -15,11 +15,18 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
+/**
+ * Service class for jwt business logic operations.
+ * Handles JWT token generation, validation, and claims extraction.
+ */
 @Service
 public class JwtService {
+    
+    /** JWT secret key from application properties */
     @Value("${security.jwt.secret-key}")
     private String secretKey;
 
+    /** JWT expiration time from application properties */
     @Value("${security.jwt.expiration-time}")
     private long jwtExpiration;
 
@@ -32,10 +39,22 @@ public class JwtService {
         return claimsResolver.apply(claims);
     }
 
+    /**
+     * Generates a JWT token for the given user.
+     * 
+     * @param user The user for whom to generate the token
+     * @return JWT token string
+     */
     public String generateToken(UserDetails userDetails) {
         return generateToken(new HashMap<>(), userDetails);
     }
 
+    /**
+     * Generates a JWT token for the given user.
+     * 
+     * @param user The user for whom to generate the token
+     * @return JWT token string
+     */
     public String generateToken(Map<String, Object> extraClaims, UserDetails userDetails) {
         return buildToken(extraClaims, userDetails, jwtExpiration);
     }
@@ -59,6 +78,13 @@ public class JwtService {
                 .compact();
     }
 
+    /**
+     * Validates a JWT token.
+     * 
+     * @param token The token to validate
+     * @param userDetails The user details to validate against
+     * @return true if token is valid, false otherwise
+     */
     public boolean isTokenValid(String token, UserDetails userDetails) {
         final String username = extractUsername(token);
         return (username.equals(userDetails.getUsername())) && !isTokenExpired(token);

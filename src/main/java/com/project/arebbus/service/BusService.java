@@ -18,16 +18,46 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Service class for bus business logic operations.
+ * Handles bus creation, installation, retrieval, and management operations.
+ */
 @Service
 @RequiredArgsConstructor
 public class BusService {
 
+    /** Repository for bus data access */
+    /** Repository for  data access */
     private final BusRepository busRepository;
+    /** Repository for route data access */
+    /** Repository for  data access */
     private final RouteRepository routeRepository;
+    /** Repository for route-stop relationships */
+    /** Repository for  data access */
     private final RouteStopRepository routeStopRepository;
+    /** Repository for bus upvote operations */
+    /** Repository for  data access */
     private final BusUpvoteRepository busUpvoteRepository;
+    /** Repository for bus installation tracking */
+    /** Repository for bus installation tracking */
+    /** Repository for  data access */
     private final InstallRepository installRepository;
 
+    /**
+     * Creates a new bus with the specified details and route.
+     * 
+     * @param user The user creating the bus
+     * @param request The bus creation request with name, route, and capacity
+     * @return BusResponse containing the created bus details
+     * @throws RouteNotFoundException if the specified route doesn't exist
+     */
+    /**
+     * Creates a new .
+     * 
+     * @param user The user creating the 
+     * @param request The creation request
+     * @return BusResponse containing the created 
+     */
     public BusResponse createBus(User user, BusCreateRequest request) {
         Route route = routeRepository.findById(request.getRouteId())
                 .orElseThrow(() -> new RouteNotFoundException(request.getRouteId()));
@@ -46,6 +76,21 @@ public class BusService {
         return buildBusResponse(savedBus, user);
     }
 
+    /**
+     * Retrieves a bus by its ID.
+     * 
+     * @param busId The ID of the bus to retrieve
+     * @param user The user requesting the bus (for personalized data)
+     * @return BusResponse containing bus details
+     * @throws BusNotFoundException if no bus exists with the given ID
+     */
+    /**
+     * Retrieves a  by its ID.
+     * 
+     * @param id The ID of the  to retrieve
+     * @param user The user requesting the 
+     * @return BusResponse containing  details
+     */
     public BusResponse getBusById(Long busId, User user) {
         Bus bus = busRepository.findById(busId)
                 .orElseThrow(() -> new BusNotFoundException(busId));
@@ -53,6 +98,22 @@ public class BusService {
         return buildBusResponse(bus, user);
     }
 
+    /**
+     * Retrieves all buses with pagination.
+     * 
+     * @param user The user requesting buses (for personalized data)
+     * @param page The page number (0-based)
+     * @param size The number of buses per page
+     * @return PagedBusResponse containing buses and pagination info
+     */
+    /**
+     * Retrieves all  with pagination.
+     * 
+     * @param user The user requesting 
+     * @param page The page number
+     * @param size The page size
+     * @return PagedBusResponse containing  and pagination info
+     */
     public PagedBusResponse getAllBuses(User user, int page, int size) {
         Sort sort = Sort.by(Sort.Direction.DESC, "id");
         Page<Bus> buses = busRepository.findAll(PageRequest.of(page, size, sort));
@@ -70,6 +131,15 @@ public class BusService {
                 .build();
     }
 
+    /**
+     * Installs a bus for a user, tracking the installation.
+     * 
+     * @param user The user installing the bus
+     * @param request The installation request containing bus ID
+     * @return BusInstallResponse with installation status
+     * @throws BusNotFoundException if the bus doesn't exist
+     * @throws BusAlreadyInstalledException if user already installed this bus
+     */
     public BusInstallResponse installBus(User user, BusInstallRequest request) {
         Bus bus = busRepository.findById(request.getBusId())
                 .orElseThrow(() -> new BusNotFoundException(request.getBusId()));
@@ -98,6 +168,15 @@ public class BusService {
                 .build();
     }
 
+    /**
+     * Uninstalls a bus for a user, removing the installation tracking.
+     * 
+     * @param user The user uninstalling the bus
+     * @param request The uninstallation request containing bus ID
+     * @return BusInstallResponse with uninstallation status
+     * @throws BusNotFoundException if the bus doesn't exist
+     * @throws BusNotInstalledException if user hasn't installed this bus
+     */
     public BusInstallResponse uninstallBus(User user, BusInstallRequest request) {
         Bus bus = busRepository.findById(request.getBusId())
                 .orElseThrow(() -> new BusNotFoundException(request.getBusId()));
@@ -119,6 +198,14 @@ public class BusService {
                 .build();
     }
 
+    /**
+     * Retrieves all buses installed by a specific user with pagination.
+     * 
+     * @param user The user whose installed buses to retrieve
+     * @param page The page number (0-based)
+     * @param size The number of buses per page
+     * @return PagedBusResponse containing installed buses and pagination info
+     */
     public PagedBusResponse getInstalledBuses(User user, int page, int size) {
         Sort sort = Sort.by(Sort.Direction.DESC, "id");
         Page<Bus> buses = busRepository.findBusesInstalledByUser(user, PageRequest.of(page, size, sort));
@@ -136,6 +223,19 @@ public class BusService {
                 .build();
     }
 
+    /**
+     * Builds a complete BusResponse with user-specific data like upvote and install status.
+     * 
+     * @param bus The bus entity to convert
+     * @param user The user for personalized data
+     * @return BusResponse with complete bus information
+     */
+    /**
+     * Builds a BusResponse from entity data.
+     * 
+     * @param entity The entity to convert
+     * @return BusResponse with entity data
+     */
     private BusResponse buildBusResponse(Bus bus, User user) {
         RouteResponse routeResponse = buildRouteResponse(bus.getRoute());
         
@@ -171,6 +271,18 @@ public class BusService {
                 .build();
     }
 
+    /**
+     * Builds a RouteResponse with all associated stops.
+     * 
+     * @param route The route entity to convert
+     * @return RouteResponse with route and stop information
+     */
+    /**
+     * Builds a RouteResponse from entity data.
+     * 
+     * @param entity The entity to convert
+     * @return RouteResponse with entity data
+     */
     private RouteResponse buildRouteResponse(Route route) {
         List<RouteStop> routeStops = routeStopRepository.findByRouteOrderByStopIndex(route);
 

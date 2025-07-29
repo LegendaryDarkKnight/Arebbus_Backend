@@ -14,10 +14,19 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 @Transactional
 public class ToggleCommentUpvoteService {
+    /** Repository for  data access */
     private final CommentRepository commentRepository;
+    /** Repository for  data access */
     private final CommentUpvoteRepository commentUpvoteRepository;
 
-    public ToggleUpvoteResponse toggleUpvote(User user, Long commentId) {
+    /**
+     * Toggles user interaction (upvote/downvote).
+     * 
+     * @param user The user performing the action
+     * @param request The toggle request
+     * @return ToggleUpvoteResponse containing toggle status
+     */
+    public ToggleUpvoteResponse toggle(User user, Long commentId) {
         var comment =
                 commentRepository
                         .findById(commentId)

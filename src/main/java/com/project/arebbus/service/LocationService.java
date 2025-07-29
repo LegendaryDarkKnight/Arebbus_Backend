@@ -23,14 +23,39 @@ import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+/**
+ * Service class for location business logic operations.
+ * Handles bus location tracking, user location management, and location clustering.
+ */
 @Service
 @RequiredArgsConstructor
 public class LocationService {
 
+    /** Repository for location data access */
+    /** Repository for  data access */
     private final LocationRepository locationRepository;
+    /** Repository for bus data access */
+    /** Repository for bus data access */
+    /** Repository for  data access */
     private final BusRepository busRepository;
 
-    public LocationResponse setUserLocationWithStatus(
+    /**
+     * Sets user location with a specific status for a bus.
+     * 
+     * @param user The user setting their location
+     * @param request The location request with coordinates and bus ID
+     * @param status The location status (WAITING, ON_BUS, etc.)
+     * @return LocationResponse with the set location details
+     * @throws BusNotFoundException if the specified bus doesn't exist
+     */
+    /**
+     * Sets the user's location for tracking.
+     * 
+     * @param user The user setting location
+     * @param request The location request
+     * @return LocationResponse containing location details
+     */
+    public LocationResponse setUserLocation(
             User user, LocationSetRequest request, LocationStatus status) {
         Bus bus = busRepository
                 .findById(request.getBusId())
@@ -275,6 +300,13 @@ public class LocationService {
         return Math.sqrt(latDiff * latDiff + lonDiff * lonDiff);
     }
 
+    /**
+     * Updates an existing .
+     * 
+     * @param user The user updating the 
+     * @param request The update request
+     * @return LocationResponse containing updated  details
+     */
     public LocationResponse updateUserLocation(User user, LocationUpdateRequest request) {
         // Get user's current location to preserve status and bus info
         Location lastLocation = getUserLastLocation(user);
