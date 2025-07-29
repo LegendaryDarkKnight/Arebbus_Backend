@@ -14,42 +14,41 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 @Transactional
 public class ToggleCommentUpvoteService {
-    /** Repository for  data access */
-    private final CommentRepository commentRepository;
-    /** Repository for  data access */
-    private final CommentUpvoteRepository commentUpvoteRepository;
+  /** Repository for data access */
+  private final CommentRepository commentRepository;
 
-    /**
-     * Toggles user interaction (upvote/downvote).
-     * 
-     * @param user The user performing the action
-     * @param request The toggle request
-     * @return ToggleUpvoteResponse containing toggle status
-     */
-    public ToggleUpvoteResponse toggle(User user, Long commentId) {
-        var comment =
-                commentRepository
-                        .findById(commentId)
-                        .orElseThrow(() -> new IllegalArgumentException("Comment not found with id: " + commentId));
+  /** Repository for data access */
+  private final CommentUpvoteRepository commentUpvoteRepository;
 
-        if (commentUpvoteRepository.existsByUserIdAndCommentId(user.getId(), commentId)) {
-            commentUpvoteRepository.deleteByUserIdAndCommentId(user.getId(), commentId);
-            comment.setNumUpvote(commentUpvoteRepository.countByCommentId(commentId));
-            return ToggleUpvoteResponse.builder().upvoteStatus(false).toggledAt(new Date()).build();
-        }
+  /**
+   * Toggles user interaction (upvote/downvote).
+   *
+   * @param user The user performing the action
+   * @param request The toggle request
+   * @return ToggleUpvoteResponse containing toggle status
+   */
+  public ToggleUpvoteResponse toggleUpvote(User user, Long commentId) {
+    var comment =
+        commentRepository
+            .findById(commentId)
+            .orElseThrow(
+                () -> new IllegalArgumentException("Comment not found with id: " + commentId));
 
-        commentUpvoteRepository.save(
-                CommentUpvote.builder()
-                        .userId(user.getId())
-                        .commentId(comment.getId())
-                        .user(user)
-                        .comment(comment)
-                        .build());
-        comment.setNumUpvote(commentUpvoteRepository.countByCommentId(commentId));
-
-        return ToggleUpvoteResponse.builder()
-                .upvoteStatus(true)
-                .toggledAt(new Date())
-                .build();
+    if (commentUpvoteRepository.existsByUserIdAndCommentId(user.getId(), commentId)) {
+      commentUpvoteRepository.deleteByUserIdAndCommentId(user.getId(), commentId);
+      comment.setNumUpvote(commentUpvoteRepository.countByCommentId(commentId));
+      return ToggleUpvoteResponse.builder().upvoteStatus(false).toggledAt(new Date()).build();
     }
+
+    commentUpvoteRepository.save(
+        CommentUpvote.builder()
+            .userId(user.getId())
+            .commentId(comment.getId())
+            .user(user)
+            .comment(comment)
+            .build());
+    comment.setNumUpvote(commentUpvoteRepository.countByCommentId(commentId));
+
+    return ToggleUpvoteResponse.builder().upvoteStatus(true).toggledAt(new Date()).build();
+  }
 }
