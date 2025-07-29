@@ -111,7 +111,7 @@ public class AuthService {
                         input.getPassword()
                 )
         );
-
+        logger.info("Authenticated");
         logger.info("User successfully authenticated: {}", input.getEmail());
         
         // Generate JWT token for authenticated user
