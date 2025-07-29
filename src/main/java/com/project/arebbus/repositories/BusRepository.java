@@ -3,6 +3,7 @@ package com.project.arebbus.repositories;
 import com.project.arebbus.model.Bus;
 import com.project.arebbus.model.Route;
 import com.project.arebbus.model.User;
+
 import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
