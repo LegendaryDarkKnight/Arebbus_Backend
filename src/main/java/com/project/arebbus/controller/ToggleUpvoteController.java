@@ -30,7 +30,7 @@ public class ToggleUpvoteController {
 
   @PostMapping("/comment")
   public ResponseEntity<ToggleUpvoteResponse> toggleCommentUpvote(
-          @RequestBody ToggleUpvoteRequest request, Authentication authentication) {
+      @RequestBody ToggleUpvoteRequest request, Authentication authentication) {
     User user = (User) authentication.getPrincipal();
     ToggleUpvoteResponse response = commentUpvoteService.toggleUpvote(user, request.getId());
     return ResponseEntity.ok(response);

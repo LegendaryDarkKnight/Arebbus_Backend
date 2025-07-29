@@ -14,42 +14,38 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 @Transactional
 public class ToggleUpvoteService {
-    /** Repository for  data access */
-    private final PostRepository postRepository;
-    /** Repository for  data access */
-    private final UpvoteRepository upvoteRepository;
+  /** Repository for data access */
+  private final PostRepository postRepository;
 
-    /**
-     * Toggles user interaction (upvote/downvote).
-     * 
-     * @param user The user performing the action
-     * @param request The toggle request
-     * @return ToggleUpvoteResponse containing toggle status
-     */
-    public ToggleUpvoteResponse toggle(User user, Long postId) {
-        var post =
-                postRepository
-                        .findById(postId)
-                        .orElseThrow(() -> new IllegalArgumentException("Post not found with id: " + postId));
+  /** Repository for data access */
+  private final UpvoteRepository upvoteRepository;
 
-        if (upvoteRepository.existsByUserIdAndPostId(user.getId(), postId)) {
-            upvoteRepository.deleteByUserIdAndPostId(user.getId(), postId);
-            post.setNumUpvote(upvoteRepository.countByPostId(postId));
-            return ToggleUpvoteResponse.builder().upvoteStatus(false).toggledAt(new Date()).build();
-        }
+  /**
+   * Toggles user interaction (upvote/downvote).
+   *
+   * @param user The user performing the action
+   * @param request The toggle request
+   * @return ToggleUpvoteResponse containing toggle status
+   */
+  public ToggleUpvoteResponse toggleUpvote(User user, Long postId) {
+    var post =
+        postRepository
+            .findById(postId)
+            .orElseThrow(() -> new IllegalArgumentException("Post not found with id: " + postId));
 
-        upvoteRepository.save(
-                Upvote.builder()
-                        .userId(user.getId())
-                        .postId(post.getId())
-                        .user(user)
-                        .post(post)
-                        .build());
-        post.setNumUpvote(upvoteRepository.countByPostId(postId));
-
-        return ToggleUpvoteResponse.builder()
-                .upvoteStatus(true)
-                .toggledAt(new Date()) // Set the current date and time
-                .build();
+    if (upvoteRepository.existsByUserIdAndPostId(user.getId(), postId)) {
+      upvoteRepository.deleteByUserIdAndPostId(user.getId(), postId);
+      post.setNumUpvote(upvoteRepository.countByPostId(postId));
+      return ToggleUpvoteResponse.builder().upvoteStatus(false).toggledAt(new Date()).build();
     }
+
+    upvoteRepository.save(
+        Upvote.builder().userId(user.getId()).postId(post.getId()).user(user).post(post).build());
+    post.setNumUpvote(upvoteRepository.countByPostId(postId));
+
+    return ToggleUpvoteResponse.builder()
+        .upvoteStatus(true)
+        .toggledAt(new Date()) // Set the current date and time
+        .build();
+  }
 }

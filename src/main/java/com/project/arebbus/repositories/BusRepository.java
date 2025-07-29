@@ -1,65 +1,75 @@
-import org.springframework.data.repository.query.Param;
+package com.project.arebbus.repositories;
+
+import com.project.arebbus.model.Bus;
+import com.project.arebbus.model.Route;
+import com.project.arebbus.model.User;
 import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 /**
- * Repository interface for Bus entity data access operations.
- * Extends JpaRepository to provide standard CRUD operations and custom query methods.
+ * Repository interface for Bus entity data access operations. Extends JpaRepository to provide
+ * standard CRUD operations and custom query methods.
  */
 public interface BusRepository extends JpaRepository<Bus, Long> {
-    
-    /**
-     * Finds all buses created by a specific author.
-     * 
-     * @param author The user who created the buses
-     * @return List of Bus entities created by the author
-     */
-    List<Bus> findByAuthor(User author);
-    
-    /**
-     * Finds all buses associated with a specific route.
-     * 
-     * @param route The route to search for buses
-     * @return List of Bus entities on the specified route
-     */
-    List<Bus> findByRoute(Route route);
-    
-    /**
-     * Finds all buses with a specific status.
-     * 
-     * @param status The status to filter by
-     * @return List of Bus entities with the specified status
-     */
-    List<Bus> findByStatus(String status);
-    
-    /**
-     * Finds buses with capacity greater than the specified value.
-     * 
-     * @param capacity The minimum capacity threshold
-     * @return List of Bus entities with higher capacity
-     */
-    List<Bus> findByCapacityGreaterThan(Short capacity);
 
-    // Find buses installed by a specific user (many-to-many through Install entity)
-    @Query(nativeQuery = true, value="SELECT b FROM Bus b JOIN b.installs i WHERE i.user = :user")
-    List<Bus> findBusesInstalledByUser(@Param("user") User user);
+  /**
+   * Finds all buses created by a specific author.
+   *
+   * @param author The user who created the buses
+   * @return List of Bus entities created by the author
+   */
+  List<Bus> findByAuthor(User author);
 
-    // Find buses installed by a specific user with pagination and sorting
-    @Query("SELECT b FROM Bus b JOIN b.installs i WHERE i.user = :user")
-    Page<Bus> findBusesInstalledByUser(@Param("user") User user, Pageable pageable);
+  /**
+   * Finds all buses associated with a specific route.
+   *
+   * @param route The route to search for buses
+   * @return List of Bus entities on the specified route
+   */
+  List<Bus> findByRoute(Route route);
 
-    // Alternative approach using Install table directly
-    @Query("SELECT b FROM Bus b WHERE b.id IN (SELECT i.busId FROM Install i WHERE i.userId = :userId)")
-    List<Bus> findBusesInstalledByUserId(@Param("userId") Long userId);
+  /**
+   * Finds all buses with a specific status.
+   *
+   * @param status The status to filter by
+   * @return List of Bus entities with the specified status
+   */
+  List<Bus> findByStatus(String status);
 
-    // Find most popular buses (by install count)
-    @Query("SELECT b FROM Bus b ORDER BY b.numInstall DESC")
-    List<Bus> findBusesByInstallCountDesc();
+  /**
+   * Finds buses with capacity greater than the specified value.
+   *
+   * @param capacity The minimum capacity threshold
+   * @return List of Bus entities with higher capacity
+   */
+  List<Bus> findByCapacityGreaterThan(Short capacity);
 
-    // Find buses with most upvotes
-    @Query("SELECT b FROM Bus b ORDER BY b.numUpvote DESC")
-    List<Bus> findBusesByUpvoteCountDesc();
+  // Find buses installed by a specific user (many-to-many through Install entity)
+  @Query(nativeQuery = true, value = "SELECT b FROM Bus b JOIN b.installs i WHERE i.user = :user")
+  List<Bus> findBusesInstalledByUser(@Param("user") User user);
 
-    // Find users who installed a specific bus
-    @Query("SELECT u FROM User u JOIN u.installations i WHERE i.bus = :bus")
-    List<User> findUsersWhoInstalledBus(@Param("bus") Bus bus);
+  // Find buses installed by a specific user with pagination and sorting
+  @Query("SELECT b FROM Bus b JOIN b.installs i WHERE i.user = :user")
+  Page<Bus> findBusesInstalledByUser(@Param("user") User user, Pageable pageable);
+
+  // Alternative approach using Install table directly
+  @Query(
+      "SELECT b FROM Bus b WHERE b.id IN (SELECT i.busId FROM Install i WHERE i.userId = :userId)")
+  List<Bus> findBusesInstalledByUserId(@Param("userId") Long userId);
+
+  // Find most popular buses (by install count)
+  @Query("SELECT b FROM Bus b ORDER BY b.numInstall DESC")
+  List<Bus> findBusesByInstallCountDesc();
+
+  // Find buses with most upvotes
+  @Query("SELECT b FROM Bus b ORDER BY b.numUpvote DESC")
+  List<Bus> findBusesByUpvoteCountDesc();
+
+  // Find users who installed a specific bus
+  @Query("SELECT u FROM User u JOIN u.installations i WHERE i.bus = :bus")
+  List<User> findUsersWhoInstalledBus(@Param("bus") Bus bus);
 }
