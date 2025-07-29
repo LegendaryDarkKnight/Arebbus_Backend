@@ -30,7 +30,11 @@ public interface StopRepository extends JpaRepository<Stop, Long> {
      * 
      * @return Query result based on custom implementation
      */
-    @Query
+    @Query("""
+            SELECT s FROM Stop s
+            WHERE s.latitude BETWEEN :minLat AND :maxLat
+            AND s.longitude BETWEEN :minLon AND :maxLon
+            """)
     List<Stop> findStopsInArea(@Param("minLat") BigDecimal minLat, @Param("maxLat") BigDecimal maxLat,
                                @Param("minLon") BigDecimal minLon, @Param("maxLon") BigDecimal maxLon);
 
@@ -40,6 +44,10 @@ public interface StopRepository extends JpaRepository<Stop, Long> {
      * 
      * @return Query result based on custom implementation
      */
-    @Query
+    @Query("""
+            SELECT s FROM Stop s
+            JOIN s.subscriptions ss
+            WHERE ss.user = :user
+            """)
     List<Stop> findStopsBySubscribedUser(@Param("user") User user);
 }

@@ -38,8 +38,7 @@ public interface InstallRepository extends JpaRepository<Install, InstallId> {
      * 
      * @return Query result based on custom implementation
      */
-    @Query
-    FROM Install i WHERE i.bus = :bus")
+    @Query("SELECT COUNT(i) FROM Install i WHERE i.bus = :bus")
     Long countInstallationsByBus(@Param("bus") Bus bus);
 
     // Find most active users (by installation count)
@@ -48,7 +47,6 @@ public interface InstallRepository extends JpaRepository<Install, InstallId> {
      * 
      * @return Query result based on custom implementation
      */
-    @Query
-    DESC")
+     @Query("SELECT i.user FROM Install i GROUP BY i.user ORDER BY COUNT(i) DESC")
     List<User> findMostActiveInstallers();
 }

@@ -79,25 +79,22 @@ public interface CommentUpvoteRepository extends JpaRepository<CommentUpvote, Co
      * 
      * @return Query result based on custom implementation
      */
-    @Query
+    @Query("SELECT u.comment FROM CommentUpvote u WHERE u.userId = :userId")
     Page<Comment> findCommentsUpvotedByUser(@Param("userId") Long userId, Pageable pageable);
-
   // Get all users who upvoted a specific comment
   /**
      * Custom query method with specific business logic.
      * 
      * @return Query result based on custom implementation
      */
-    @Query
+    @Query("SELECT u.user FROM CommentUpvote u WHERE u.commentId = :commentId")
     List<User> findUsersWhoUpvotedComment(@Param("commentId") Long commentId);
-
   // Get upvote statistics for multiple comments
   /**
      * Custom query method with specific business logic.
      * 
      * @return Query result based on custom implementation
      */
-    @Query
-    FROM CommentUpvote u WHERE u.commentId IN :commentIds GROUP BY u.commentId")
-  List<Object[]> getUpvoteCountsForComments(@Param("commentIds") List<Long> commentIds);
+    @Query("SELECT u.commentId, COUNT(u) FROM CommentUpvote u WHERE u.commentId IN :commentIds GROUP BY u.commentId")
+    List<Object[]> getUpvoteCountsForComments(@Param("commentIds") List<Long> commentIds);
 }

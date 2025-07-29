@@ -29,7 +29,7 @@ public interface RouteRepository extends JpaRepository<Route, Long> {
      * 
      * @return Query result based on custom implementation
      */
-    @Query
+    @Query("SELECT r FROM Route r JOIN r.subscriptions rs WHERE rs.user = :user")
     List<Route> findRoutesBySubscribedUser(@Param("user") User user);
 
     // Alternative approach using junction table
@@ -38,8 +38,7 @@ public interface RouteRepository extends JpaRepository<Route, Long> {
      * 
      * @return Query result based on custom implementation
      */
-    @Query
-    ")
+    @Query("SELECT r FROM Route r WHERE r.id IN (SELECT rs.route.id FROM RouteSubscription rs WHERE rs.user.id = :userId)")
     List<Route> findRoutesByUserId(@Param("userId") Long userId);
 
     // Find routes with most subscribers
@@ -48,7 +47,6 @@ public interface RouteRepository extends JpaRepository<Route, Long> {
      * 
      * @return Query result based on custom implementation
      */
-    @Query
-    DESC")
+    @Query("SELECT r FROM Route r LEFT JOIN r.subscriptions rs GROUP BY r ORDER BY COUNT(rs) DESC")
     List<Route> findRoutesBySubscriptionCountDesc();
 }

@@ -39,8 +39,10 @@ public interface RouteSubscriptionRepository extends JpaRepository<RouteSubscrip
      * 
      * @return Query result based on custom implementation
      */
-    @Query
-    FROM RouteSubscription rs
+    @Query(nativeQuery = true,
+            value =
+            """
+            SELECT COUNT(rs) FROM RouteSubscription rs
             WHERE rs.route = :route
             """
     )
@@ -52,8 +54,12 @@ public interface RouteSubscriptionRepository extends JpaRepository<RouteSubscrip
      * 
      * @return Query result based on custom implementation
      */
-    @Query
-    DESC
+    @Query(nativeQuery = true,
+            value =
+            """
+            SELECT rs.route FROM RouteSubscription rs
+            GROUP BY rs.route
+            ORDER BY COUNT(rs) DESC
             """
     )
     List<Route> findMostPopularRoutes();

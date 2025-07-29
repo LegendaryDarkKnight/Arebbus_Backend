@@ -79,7 +79,7 @@ public interface UpvoteRepository extends JpaRepository<Upvote, UpvoteId> {
      * 
      * @return Query result based on custom implementation
      */
-    @Query
+     @Query("SELECT u.post FROM Upvote u WHERE u.userId = :userId")
     Page<Post> findPostsUpvotedByUser(@Param("userId") Long userId, Pageable pageable);
 
   // Get all users who upvoted a specific post
@@ -88,7 +88,7 @@ public interface UpvoteRepository extends JpaRepository<Upvote, UpvoteId> {
      * 
      * @return Query result based on custom implementation
      */
-    @Query
+    @Query("SELECT u.user FROM Upvote u WHERE u.postId = :postId")
     List<User> findUsersWhoUpvotedPost(@Param("postId") Long postId);
 
   // Get upvote statistics for multiple posts
@@ -97,7 +97,6 @@ public interface UpvoteRepository extends JpaRepository<Upvote, UpvoteId> {
      * 
      * @return Query result based on custom implementation
      */
-    @Query
-    FROM Upvote u WHERE u.postId IN :postIds GROUP BY u.postId")
-  List<Object[]> getUpvoteCountsForPosts(@Param("postIds") List<Long> postIds);
+    @Query("SELECT u.postId, COUNT(u) FROM Upvote u WHERE u.postId IN :postIds GROUP BY u.postId")
+    List<Object[]> getUpvoteCountsForPosts(@Param("postIds") List<Long> postIds);
 }

@@ -36,7 +36,7 @@ public interface TagRepository extends JpaRepository<Tag, Long> {
      * 
      * @return Query result based on custom implementation
      */
-    @Query
+     @Query("SELECT t FROM Tag t JOIN t.postTags pt WHERE pt.post.id = :postId")
     List<Tag> findTagsByPostId(@Param("postId") Long postId);
 
     // Find most popular tags
@@ -45,7 +45,6 @@ public interface TagRepository extends JpaRepository<Tag, Long> {
      * 
      * @return Query result based on custom implementation
      */
-    @Query
-    DESC")
+    @Query("SELECT t FROM Tag t LEFT JOIN t.postTags pt GROUP BY t ORDER BY COUNT(pt) DESC")
     List<Tag> findMostPopularTags();
 }

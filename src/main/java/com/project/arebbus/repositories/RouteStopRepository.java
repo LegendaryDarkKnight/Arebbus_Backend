@@ -38,7 +38,11 @@ public interface RouteStopRepository extends JpaRepository<RouteStop, RouteStopI
      * 
      * @return Query result based on custom implementation
      */
-    @Query
+    @Query("""
+            SELECT rs.stop FROM RouteStop rs
+            WHERE rs.route = :route
+            ORDER BY rs.stopIndex
+            """)
     List<Stop> findStopsForRouteInOrder(@Param("route") Route route);
 
     // Find routes that contain a specific stop
@@ -47,6 +51,9 @@ public interface RouteStopRepository extends JpaRepository<RouteStop, RouteStopI
      * 
      * @return Query result based on custom implementation
      */
-    @Query
+     @Query("""
+            SELECT rs.route FROM RouteStop rs
+            WHERE rs.stop = :stop
+            """)
     List<Route> findRoutesContainingStop(@Param("stop") Stop stop);
 }
