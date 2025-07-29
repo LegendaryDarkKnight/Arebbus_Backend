@@ -26,40 +26,40 @@ jobs:
       - name: Stop and remove existing containers
         run: |
           ssh -i ~/.ssh/id_rsa ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} << 'EOF'
-          echo "🔍 Checking for existing containers..."
+          echo " Checking for existing containers..."
           
           # Stop docker-compose services if compose file exists
           if [ -f docker-compose.yml ]; then
-            echo "📦 Stopping docker-compose services..."
+            echo " Stopping docker-compose services..."
             docker-compose down --remove-orphans || true
           fi
           
           # Stop and remove any arebbus-related containers
           for container in $(docker ps -aq --filter "name=arebbus"); do
-            echo "🛑 Stopping and removing container: $(docker ps --filter id=$container --format '{{.Names}}')"
+            echo " Stopping and removing container: $(docker ps --filter id=$container --format '{{.Names}}')"
             docker stop $container || true
             docker rm $container || true
           done
           
-          echo "✅ Container cleanup completed"
+          echo " Container cleanup completed"
           EOF
 
       - name: Pull latest image and cleanup old images
         run: |
           ssh -i ~/.ssh/id_rsa ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} << 'EOF'
-          echo "📥 Pulling latest backend image..."
+          echo " Pulling latest backend image..."
           docker pull ${{ secrets.DOCKER_USERNAME }}/arebbus-backend:latest
           
-          echo "🧹 Cleaning up old images..."
+          echo " Cleaning up old images..."
           docker image prune -f || true
           
-          echo "✅ Image update completed"
+          echo " Image update completed"
           EOF
 
       - name: Create docker-compose configuration
         run: |
           ssh -i ~/.ssh/id_rsa ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} << 'EOF'
-          echo "📝 Creating docker-compose.yml..."
+          echo " Creating docker-compose.yml..."
           cat > docker-compose.yml << 'COMPOSE_EOF'
           version: '3.8'
           
@@ -124,7 +124,7 @@ jobs:
               driver: bridge
           COMPOSE_EOF
           
-          echo "✅ docker-compose.yml created"
+          echo " docker-compose.yml created"
           EOF
 
       - name: Create environment file
@@ -140,7 +140,7 @@ jobs:
           FRONTEND_URL=${{ secrets.FRONTEND_URL }}
           ENV_EOF
           
-          echo "✅ Environment file created"
+          echo " Environment file created"
           EOF
 
       - name: Start services
@@ -149,10 +149,10 @@ jobs:
           echo "🚀 Starting services with docker-compose..."
           docker-compose up -d
           
-          echo "📊 Service status:"
+          echo " Service status:"
           docker-compose ps
           
-          echo "✅ Services started"
+          echo " Services started"
           EOF
 
       - name: Wait for backend to be ready
@@ -161,18 +161,18 @@ jobs:
           echo "⏳ Waiting for backend to be ready..."
           
           for i in {1..20}; do
-            echo "🔍 Health check attempt $i/20..."
+            echo " Health check attempt $i/20..."
           
             if curl -f http://localhost:8080/health 2>/dev/null; then
-              echo "✅ Backend is ready!"
+              echo " Backend is ready!"
               exit 0
             fi
           
-            echo "⏱️  Waiting 15 seconds..."
+            echo "  Waiting 15 seconds..."
             sleep 15
           done
           
-          echo "❌ Backend failed to become ready"
+          echo " Backend failed to become ready"
           exit 1
           EOF
 
