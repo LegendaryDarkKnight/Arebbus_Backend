@@ -11,27 +11,49 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 
 public interface RouteSubscriptionRepository extends JpaRepository<RouteSubscription, RouteSubscriptionId> {
+    /**
+     * Finds all RouteSubscription entities by User.
+     * 
+     * @param User The User to search for
+     * @return List of RouteSubscription entities matching the criteria
+     */
     List<RouteSubscription> findByUser(User user);
+    /**
+     * Finds all RouteSubscription entities by Route.
+     * 
+     * @param Route The Route to search for
+     * @return List of RouteSubscription entities matching the criteria
+     */
     List<RouteSubscription> findByRoute(Route route);
+    /**
+     * Checks if an entity exists by UserAndRoute.
+     * 
+     * @param UserAndRoute The UserAndRoute to check
+     * @return true if entity exists, false otherwise
+     */
     boolean existsByUserAndRoute(User user, Route route);
 
     // Count subscribers for a route
-    @Query(nativeQuery = true,
-            value =
-            """
-            SELECT COUNT(rs) FROM RouteSubscription rs
+    /**
+     * Custom query method with specific business logic.
+     * 
+     * @return Query result based on custom implementation
+     */
+    @Query
+    FROM RouteSubscription rs
             WHERE rs.route = :route
             """
     )
     Long countSubscribersByRoute(@Param("route") Route route);
 
     // Find most popular routes by subscription count
-    @Query(nativeQuery = true,
-            value =
-            """
-            SELECT rs.route FROM RouteSubscription rs
-            GROUP BY rs.route
-            ORDER BY COUNT(rs) DESC
+    /**
+     * Custom query method with specific business logic.
+     * 
+     * @return Query result based on custom implementation
+     */
+    @Query
+    DESC
             """
     )
     List<Route> findMostPopularRoutes();

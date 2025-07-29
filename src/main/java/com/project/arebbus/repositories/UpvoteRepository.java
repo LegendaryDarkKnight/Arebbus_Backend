@@ -13,34 +13,91 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface UpvoteRepository extends JpaRepository<Upvote, UpvoteId> {
-  List<Upvote> findByPost(Post post);
+  /**
+     * Finds all Upvote entities by Post.
+     * 
+     * @param Post The Post to search for
+     * @return List of Upvote entities matching the criteria
+     */
+    List<Upvote> findByPost(Post post);
 
-  List<Upvote> findByUser(User user);
+  /**
+     * Finds all Upvote entities by User.
+     * 
+     * @param User The User to search for
+     * @return List of Upvote entities matching the criteria
+     */
+    List<Upvote> findByUser(User user);
 
   // Check if a user has upvoted a specific post
-  boolean existsByUserIdAndPostId(Long userId, Long postId);
+  /**
+     * Checks if an entity exists by UserIdAndPostId.
+     * 
+     * @param UserIdAndPostId The UserIdAndPostId to check
+     * @return true if entity exists, false otherwise
+     */
+    boolean existsByUserIdAndPostId(Long userId, Long postId);
 
   // Count upvotes for a specific post
-  long countByPostId(Long postId);
+  /**
+     * Counts entities by PostId.
+     * 
+     * @param PostId The PostId to count by
+     * @return Number of entities matching the criteria
+     */
+    Long countByPostId(Long postId);
 
   // Count upvotes by a specific user
-  long countByUserId(Long userId);
+  /**
+     * Counts entities by UserId.
+     * 
+     * @param UserId The UserId to count by
+     * @return Number of entities matching the criteria
+     */
+    Long countByUserId(Long userId);
 
   // Delete upvote by user and post
-  void deleteByUserIdAndPostId(Long userId, Long postId);
+  /**
+     * Deletes entities by UserIdAndPostId.
+     * 
+     * @param UserIdAndPostId The UserIdAndPostId to delete by
+     */
+    void deleteByUserIdAndPostId(Long userId, Long postId);
 
   // Find upvote by user and post
-  Optional<Upvote> findByUserIdAndPostId(Long userId, Long postId);
+  /**
+     * Finds a Upvote by UserIdAndPostId.
+     * 
+     * @param UserIdAndPostId The UserIdAndPostId to search for
+     * @return Optional containing the Upvote if found
+     */
+    Optional<Upvote> findByUserIdAndPostId(Long userId, Long postId);
 
   // Get all posts upvoted by a user (with pagination)
-  @Query("SELECT u.post FROM Upvote u WHERE u.userId = :userId")
-  Page<Post> findPostsUpvotedByUser(@Param("userId") Long userId, Pageable pageable);
+  /**
+     * Custom query method with specific business logic.
+     * 
+     * @return Query result based on custom implementation
+     */
+    @Query
+    Page<Post> findPostsUpvotedByUser(@Param("userId") Long userId, Pageable pageable);
 
   // Get all users who upvoted a specific post
-  @Query("SELECT u.user FROM Upvote u WHERE u.postId = :postId")
-  List<User> findUsersWhoUpvotedPost(@Param("postId") Long postId);
+  /**
+     * Custom query method with specific business logic.
+     * 
+     * @return Query result based on custom implementation
+     */
+    @Query
+    List<User> findUsersWhoUpvotedPost(@Param("postId") Long postId);
 
   // Get upvote statistics for multiple posts
-  @Query("SELECT u.postId, COUNT(u) FROM Upvote u WHERE u.postId IN :postIds GROUP BY u.postId")
+  /**
+     * Custom query method with specific business logic.
+     * 
+     * @return Query result based on custom implementation
+     */
+    @Query
+    FROM Upvote u WHERE u.postId IN :postIds GROUP BY u.postId")
   List<Object[]> getUpvoteCountsForPosts(@Param("postIds") List<Long> postIds);
 }

@@ -9,23 +9,37 @@ import java.util.List;
 import java.math.BigDecimal;
 
 public interface StopRepository extends JpaRepository<Stop, Long> {
+    /**
+     * Finds all Stop entities by Author.
+     * 
+     * @param Author The Author to search for
+     * @return List of Stop entities matching the criteria
+     */
     List<Stop> findByAuthor(User author);
+    /**
+     * Finds all Stop entities by NameContainingIgnoreCase.
+     * 
+     * @param NameContainingIgnoreCase The NameContainingIgnoreCase to search for
+     * @return List of Stop entities matching the criteria
+     */
     List<Stop> findByNameContainingIgnoreCase(String name);
 
     // Find stops near a location
-    @Query("""
-            SELECT s FROM Stop s
-            WHERE s.latitude BETWEEN :minLat AND :maxLat
-            AND s.longitude BETWEEN :minLon AND :maxLon
-            """)
+    /**
+     * Custom query method with specific business logic.
+     * 
+     * @return Query result based on custom implementation
+     */
+    @Query
     List<Stop> findStopsInArea(@Param("minLat") BigDecimal minLat, @Param("maxLat") BigDecimal maxLat,
                                @Param("minLon") BigDecimal minLon, @Param("maxLon") BigDecimal maxLon);
 
     // Find stops subscribed by a user
-    @Query("""
-            SELECT s FROM Stop s
-            JOIN s.subscriptions ss
-            WHERE ss.user = :user
-            """)
+    /**
+     * Custom query method with specific business logic.
+     * 
+     * @return Query result based on custom implementation
+     */
+    @Query
     List<Stop> findStopsBySubscribedUser(@Param("user") User user);
 }

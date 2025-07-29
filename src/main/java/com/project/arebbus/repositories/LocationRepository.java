@@ -12,17 +12,59 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 public interface LocationRepository extends JpaRepository<Location, LocationId> {
+    /**
+     * Finds all Location entities by Bus.
+     * 
+     * @param Bus The Bus to search for
+     * @return List of Location entities matching the criteria
+     */
     List<Location> findByBus(Bus bus);
+    /**
+     * Finds all Location entities by BusId.
+     * 
+     * @param BusId The BusId to search for
+     * @return List of Location entities matching the criteria
+     */
     List<Location> findByBusId(Long busId);
+    /**
+     * Finds all Location entities by User.
+     * 
+     * @param User The User to search for
+     * @return List of Location entities matching the criteria
+     */
     List<Location> findByUser(User user);
+    /**
+     * Finds all Location entities by Status.
+     * 
+     * @param Status The Status to search for
+     * @return List of Location entities matching the criteria
+     */
     List<Location> findByStatus(LocationStatus status);
+    /**
+     * Finds all Location entities by TimeBetween.
+     * 
+     * @param TimeBetween The TimeBetween to search for
+     * @return List of Location entities matching the criteria
+     */
     List<Location> findByTimeBetween(LocalDateTime start, LocalDateTime end);
 
     // Find latest location for each bus
-    @Query(nativeQuery = true,value = "SELECT l FROM Location l WHERE l.time = (SELECT MAX(l2.time) FROM Location l2 WHERE l2.bus = l.bus)")
+    /**
+     * Custom query method with specific business logic.
+     * 
+     * @return Query result based on custom implementation
+     */
+    @Query
+    FROM Location l2 WHERE l2.bus = l.bus)")
     List<Location> findLatestLocationForEachBus();
 
     // Find users currently on a specific bus
-    @Query(nativeQuery = true,value = "SELECT l.user FROM Location l WHERE l.bus = :bus AND l.status = 'ON_BUS' AND l.time = (SELECT MAX(l2.time) FROM Location l2 WHERE l2.user = l.user)")
+    /**
+     * Custom query method with specific business logic.
+     * 
+     * @return Query result based on custom implementation
+     */
+    @Query
+    FROM Location l2 WHERE l2.user = l.user)")
     List<User> findUsersCurrentlyOnBus(@Param("bus") Bus bus);
 }

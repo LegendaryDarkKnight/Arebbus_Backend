@@ -8,18 +8,47 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 
 public interface RouteRepository extends JpaRepository<Route, Long> {
+    /**
+     * Finds all Route entities by Author.
+     * 
+     * @param Author The Author to search for
+     * @return List of Route entities matching the criteria
+     */
     List<Route> findByAuthor(User author);
+    /**
+     * Finds all Route entities by NameContainingIgnoreCase.
+     * 
+     * @param NameContainingIgnoreCase The NameContainingIgnoreCase to search for
+     * @return List of Route entities matching the criteria
+     */
     List<Route> findByNameContainingIgnoreCase(String name);
 
     // Example: Find routes subscribed by a specific user (many-to-many query)
-    @Query("SELECT r FROM Route r JOIN r.subscriptions rs WHERE rs.user = :user")
+    /**
+     * Custom query method with specific business logic.
+     * 
+     * @return Query result based on custom implementation
+     */
+    @Query
     List<Route> findRoutesBySubscribedUser(@Param("user") User user);
 
     // Alternative approach using junction table
-    @Query("SELECT r FROM Route r WHERE r.id IN (SELECT rs.route.id FROM RouteSubscription rs WHERE rs.user.id = :userId)")
+    /**
+     * Custom query method with specific business logic.
+     * 
+     * @return Query result based on custom implementation
+     */
+    @Query
+    ")
     List<Route> findRoutesByUserId(@Param("userId") Long userId);
 
     // Find routes with most subscribers
-    @Query("SELECT r FROM Route r LEFT JOIN r.subscriptions rs GROUP BY r ORDER BY COUNT(rs) DESC")
+    /**
+     * Custom query method with specific business logic.
+     * 
+     * @return Query result based on custom implementation
+     */
+    @Query
+    DESC")
     List<Route> findRoutesBySubscriptionCountDesc();
 }
